@@ -1,0 +1,151 @@
+prefixes:
+  ex: "http://example.com/"
+
+mappings:
+  person:
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)
+    po:
+      - [a, schema:person]
+      - [ex:race, ex:person/ID_$(id)/race/$(race)]
+      - [ex:age, ex:person/ID_$(id)/age/$(age)]
+      - [ex:sex, ex:person/ID_$(id)/sex/$(sex)]
+      - [ex:nativecountry, ex:person/ID_$(id)/nativecountry/$(native-country)]
+      - [ex:education, ex:person/ID_$(id)/education]
+      - [ex:socialnetwork, ex:person/ID_$(id)/socialnetwork]
+      - [ex:employment, ex:person/ID_$(id)/employment]
+      - [ex:finance, ex:person/ID_$(id)/finance]
+
+
+  age:
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/age/$(age)
+    po:
+      - [a, schema:age]
+      - [ex:has_value, $(age)]
+  race:
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/race/$(race)
+    po:
+      - [a, schema:race]
+      - [ex:has_value, $(race)]
+  sex:
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/sex/$(sex)
+    po:
+      - [a, schema:sex]
+      - [ex:has_value, $(sex)]
+  nativecountry:
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/nativecountry/$(native-country)
+    po:
+      - [a, schema:nativecountry]
+      - [ex:has_value, $(native-country)]
+
+ ########## 
+  education:
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/education
+    po:
+      - [a, schema:education]
+      - [ex:educationlevel, http://example.com/person/ID_$(id)/education/educationlevel/$(education)]
+      - [ex:educationnum, http://example.com/person/ID_$(id)/education/educationnum/$(education-num)]
+
+  socialnetwork:
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/socialnetwork
+    po:
+      - [a, schema:socialnetwork]
+      - [ex:maritalstatus, http://example.com/person/ID_$(id)/socialnetwork/maritalstatus/$(marital-status)]
+      - [ex:relationship, http://example.com/person/ID_$(id)/socialnetwork/relationship/$(relationship)]
+
+  employment:
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/employment
+    po:
+      - [a, schema:employment]
+      - [ex:workclass, http://example.com/person/ID_$(id)/employment/workclass/$(workclass)]
+      - [ex:occupation, http://example.com/person/ID_$(id)/employment/occupation/$(occupation)]
+
+  finance:
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/finance
+    po:
+      - [a, schema:finance]
+      - [ex:capitalgain, http://example.com/person/ID_$(id)/finance/capitalgain/$(capital-gain)]
+      - [ex:capitalloss, http://example.com/person/ID_$(id)/finance/capitalloss/$(capital-loss)]
+      - [ex:hoursperweek, http://example.com/person/ID_$(id)/finance/hoursperweek/$(hours-per-week)]
+
+##########
+  subcat:
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/education/educationlevel/$(education)
+    po:
+      - [a, schema:educationlevel]
+      - [ex:has_value, $(education)]
+    
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/education/educationnum/$(education-num)
+    po:
+      - [a, schema:educationnum]
+      - [ex:has_value, $(education-num)]
+
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/socialnetwork/maritalstatus/$(marital-status)
+    po:
+      - [a, schema:maritalstatus]
+      - [ex:has_value, $(marital-status)]
+    
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/socialnetwork/relationship/$(relationship)
+    po:
+      - [a, schema:relationship]
+      - [ex:has_value, $(relationship)]
+##########
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/employment/workclass/$(workclass)
+    po:
+      - [a, schema:workclass]
+      - [ex:has_value, $(workclass)]
+
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/employment/occupation/$(occupation)
+    po:
+      - [a, schema:occupation]
+      - [ex:has_value, $(occupation)]
+
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/finance/capitalgain/$(capital-gain)
+    po:
+      - [a, schema:capitalgain]
+      - [ex:has_value, $(capital-gain)]
+
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/finance/capitalloss/$(capital-loss)
+    po:
+      - [a, schema:capitalloss]
+      - [ex:has_value, $(capital-loss)]
+    
+    sources:
+      - ['movies.csv~csv']
+    s: http://example.com/person/ID_$(id)/finance/hoursperweek/$(hours-per-week)
+    po:
+      - [a, schema:hoursperweek]
+      - [ex:has_value, $(hours-per-week)]
