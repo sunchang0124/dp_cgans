@@ -25,7 +25,7 @@ The library is still under development, so it is still in the pypi testing envir
   ```python
   from dp_cgans import DP_CGAN
   
-  tabular_data=pd.read_csv("example_tabular_data.csv")
+  tabular_data=pd.read_csv("../dataset/example_tabular_data_UCIAdult.csv")
   
   # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
   model = DP_CGAN(
@@ -57,7 +57,7 @@ The library is still under development, so it is still in the pypi testing envir
    from dp_cgans import RDF_to_Tabular
    
    # Step 1. Load RDF to a plain table (dataframe)
-   plain_tabular=RDF_to_Tabular(file_path="../example_rdf_data.ttl")
+   plain_tabular=RDF_to_Tabular(file_path="../dataset/example_rdf_data.ttl")
    
    # Step 2. Convert plain table to a structured table 
    # After step 1, RDF data will be converted a plain tabular dataset (all the nodes/entities will be presented as rows. Step 2 will structure the table by recognizing and sorting the types of the entities, replacing the URI with actual value which is attached to that URI. Users can decide how many levels they want to unfold their RDF models to tabular datasets.)
