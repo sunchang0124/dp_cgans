@@ -97,7 +97,7 @@ The library is still under development, so it is still in the pypi testing envir
    
    ##### GANS
    
-   1. Synthetic Data Vault (SDV) [][Paper] [[Paper](https://dai.lids.mit.edu/wp-content/uploads/2018/03/SDV.pdf)] [[Github](https://github.com/sdv-dev/SDV)]
+   1. Synthetic Data Vault (SDV) [[Paper](https://dai.lids.mit.edu/wp-content/uploads/2018/03/SDV.pdf)] [[Github](https://github.com/sdv-dev/SDV)]
    2. Modeling Tabular Data using Conditional GAN (a part of SDV) [[Paper](https://arxiv.org/abs/1907.00503)] [[Github](https://github.com/sdv-dev/CTGAN)]
    3. Wasserstein GAN [[Paper](https://arxiv.org/pdf/1701.07875.pdf)]
    4. Improved Training of Wasserstein GANs [[Paper](https://papers.nips.cc/paper/2017/file/892c3b1c6dccd52936e27cbd0ff683d6-Paper.pdf)]
