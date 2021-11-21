@@ -2,7 +2,9 @@
 **Abstract**: This repository presents a Conditional Generative Adversary Networks (GANs) on tabular data (and RDF data) combining with Differential Privacy techniques. 
 
 **Author**: Chang Sun, Institute of Data Science, Maastricht University
+
 **Start date**: Nov-2021
+
 **Status**: Under development
 
 **Note**: "Standing on the shoulders of giants". This repository is inspired by the excellent work of [CTGAN](https://github.com/sdv-dev/CTGAN) from [Synthetic Data Vault (SDV)](https://github.com/sdv-dev/SDV), [Tensorflow Privacy](https://github.com/tensorflow/privacy), and [RdfPdans](https://github.com/cadmiumkitty/rdfpandas). Highly appreciate they shared the ideas and implementations, made code publicly available, well-written documentation. More related work can be found in the References below.  
@@ -22,72 +24,72 @@ The library is still under development, so it is still in the pypi testing envir
 
 1. if your input is tabular data (e.g., csv):
 
-  ```python
-  from dp_cgans import DP_CGAN
-  
-  tabular_data=pd.read_csv("example_tabular_data.csv")
-  
-  # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
-  model = DP_CGAN(
-      epochs=100, # number of training epochs
-      batch_size=1000, # the size of each batch
-      log_frequency=True,
-      verbose=True,
-      generator_dim=(128, 128, 128),
-      discriminator_dim=(128, 128, 128),
-      generator_lr=2e-4, 
-      discriminator_lr=2e-4,
-      discriminator_steps=1, 
-      private=False,
-  )
-  
-  print("Start training model")
-  model.fit(tabular_data)
-  
-  # Sample the generated synthetic data
-  model.sample(100)
-  ```
+```python
+ from dp_cgans import DP_CGAN
+
+ tabular_data=pd.read_csv("example_tabular_data.csv")
+
+ # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
+ model = DP_CGAN(
+     epochs=100, # number of training epochs
+     batch_size=1000, # the size of each batch
+     log_frequency=True,
+     verbose=True,
+     generator_dim=(128, 128, 128),
+     discriminator_dim=(128, 128, 128),
+     generator_lr=2e-4, 
+     discriminator_lr=2e-4,
+     discriminator_steps=1, 
+     private=False,
+ )
+
+ print("Start training model")
+ model.fit(tabular_data)
+
+ # Sample the generated synthetic data
+ model.sample(100)
+ ```
 
   
 
 2. If your input data is in RDF format:
 
-   ```python
-   from dp_cgans import DP_CGAN
-   from dp_cgans import RDF_to_Tabular
-   
-   # Step 1. Load RDF to a plain table (dataframe)
-   plain_tabular=RDF_to_Tabular(file_path="../example_rdf_data.ttl")
-   
-   # Step 2. Convert plain table to a structured table 
-   # After step 1, RDF data will be converted a plain tabular dataset (all the nodes/entities will be presented as rows. Step 2 will structure the table by recognizing and sorting the types of the entities, replacing the URI with actual value which is attached to that URI. Users can decide how many levels they want to unfold their RDF models to tabular datasets.)
-   tabular_data,rel_pred_obj=plain_tabular.fit_convert(user_define_data_instance="http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C16960", 
-                  user_define_is_a=["rdf:type{URIRef}"], 
-                  user_define_has_value=["http://www.cancerdata.org/roo/P100042"], 
-                  set_level="full", 
-                  as_column='object', 
-                  remove_columns_unique_values=True)
-   
-   # Step 3. Define your GANS model
-   model = DP_CGAN(
-       epochs=100, # number of training epochs
-       batch_size=1000, # the size of each batch
-       log_frequency=True,
-       verbose=True,
-       generator_dim=(128, 128, 128),
-       discriminator_dim=(128, 128, 128),
-       generator_lr=2e-4, 
-       discriminator_lr=2e-4,
-       discriminator_steps=1, 
-       private=False,
-   )
-   
-   print("Start training model")
-   model.fit(tabular_data)
-   
-   # Sample the generated synthetic data
-   model.sample(100)
-   ```
+ ```python
+ from dp_cgans import DP_CGAN
+ from dp_cgans import RDF_to_Tabular
+
+ # Step 1. Load RDF to a plain table (dataframe)
+ plain_tabular=RDF_to_Tabular(file_path="../example_rdf_data.ttl")
+
+ # Step 2. Convert plain table to a structured table 
+ # After step 1, RDF data will be converted a plain tabular dataset (all the nodes/entities will be presented as rows. Step 2 will structure the table by recognizing and sorting the types of the entities, replacing the URI with actual value which is attached to that URI. Users can decide how many levels they want to unfold their RDF models to tabular datasets.)
+ tabular_data,rel_pred_obj=plain_tabular.fit_convert(user_define_data_instance="http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#C16960", 
+                user_define_is_a=["rdf:type{URIRef}"], 
+                user_define_has_value=["http://www.cancerdata.org/roo/P100042"], 
+                set_level="full", 
+                as_column='object', 
+                remove_columns_unique_values=True)
+
+ # Step 3. Define your GANS model
+ model = DP_CGAN(
+     epochs=100, # number of training epochs
+     batch_size=1000, # the size of each batch
+     log_frequency=True,
+     verbose=True,
+     generator_dim=(128, 128, 128),
+     discriminator_dim=(128, 128, 128),
+     generator_lr=2e-4, 
+     discriminator_lr=2e-4,
+     discriminator_steps=1, 
+     private=False,
+ )
+
+ print("Start training model")
+ model.fit(tabular_data)
+
+ # Sample the generated synthetic data
+ model.sample(100)
+ ```
    
    
    
