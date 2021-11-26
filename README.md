@@ -1,4 +1,9 @@
 # CGANS 
+
+<!-- [![Development Status](https://img.shields.io/badge/Development%20Status-2%20--%20Pre--Alpha-yellow)](https://pypi.org/search/?c=Development+Status+%3A%3A+2+-+Pre-Alpha) -->
+[![PyPi Shield](https://img.shields.io/badge/pypi-v0.0.8-blue)](https://test.pypi.org/project/dp-cgans/)
+<!-- [![Tests](https://github.com/sdv-dev/SDV/workflows/Run%20Tests/badge.svg)](https://github.com/sdv-dev/SDV/actions?query=workflow%3A%22Run+Tests%22+branch%3Amaster) -->
+
 **Abstract**: This repository presents a Conditional Generative Adversary Networks (GANs) on tabular data (and RDF data) combining with Differential Privacy techniques. 
 
 **Author**: Chang Sun, Institute of Data Science, Maastricht University
@@ -15,7 +20,7 @@ You will need Python 3.7+ and
 The library is still under development, so it is still in the pypi testing environment. 
 
 ```shell
- pip3 install -i https://test.pypi.org/simple/ dp_cgans==0.0.8
+ pip install -i https://test.pypi.org/simple/ dp-cgans
 ```
 
 ### Quick start 
