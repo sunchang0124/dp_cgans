@@ -19,12 +19,16 @@ from dp_cgans.metadata import Metadata, Table
 from dp_cgans.dp_cgan_init import DP_CGAN
 from dp_cgans.synthesizers.dp_cgan import DPCGANSynthesizer
 
+from dp_cgans.onto_dp_cgan_init import Onto_DP_CGAN
+from dp_cgans.synthesizers.onto_dp_cgan import Onto_DPCGANSynthesizer
+
 __all__ = (
     'constraints',
     'metadata',
     'Metadata',
     'Table',
     'DP_CGAN',
-    'RDF_to_Tabular',
-    'DPCGANSynthesizer'
+    'Onto_DP_CGAN',
+    'DPCGANSynthesizer',
+    'Onto_DPCGANSynthesizer'
 )
