@@ -11,7 +11,7 @@ def test_dp_cgans():
         epochs=1, # number of training epochs
         batch_size=1000, # the size of each batch
         log_frequency=True,
-        verbose=True,
+        verbose=False,
         generator_dim=(128, 128, 128),
         discriminator_dim=(128, 128, 128),
         generator_lr=2e-4, 
@@ -26,3 +26,4 @@ def test_dp_cgans():
     sample = model.sample(100)
 
     assert len(sample) == 100
+    # asset sample[0]['score'] >= 0.8

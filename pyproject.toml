@@ -1,9 +1,27 @@
-
 [tool.poetry]
 name = "dp-cgans"
 version = "0.0.2"
 description = ""
-authors = ["Chang Sun <admin@example.com>"]
+authors = ["John Franey <johnfraney@gmail.com>"]
+maintainers = ["John Franey <johnfraney@gmail.com>"]
+readme = "README.md"
+license = "MIT"
+include = [
+    "LICENSE",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+homepage = "https://github.com/sunchang0124/dp_cgans"
+repository = "https://github.com/sunchang0124/dp_cgans"
+keywords = ["CGANS", "synthetic data"]
+
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/sunchang0124/dp_cgans/issues"
+
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.10"
@@ -30,12 +48,6 @@ flake8 = "^3.7.9"
 pytest = "^5.4.1"
 pytest-cov = "^2.8.1"
 
-
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-line_length = 88
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]

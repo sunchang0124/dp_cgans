@@ -105,32 +105,38 @@ poetry env use $(which python)
 Clone the repository:
 
 ```bash
-git clone
+git clone https://github.com/sunchang0124/dp_cgans
 ```
 
 Install the dependencies:
 
 ```bash
-python3 -m pip install -e .
 poetry install
 ```
 
 Run tests:
 
 ```bash
-python3 -m pytest -s
 poetry run pytest -s
+```
+
+Add a dependency (e.g. `pandas` here):
+
+```bash
+poetry add pandas
 ```
 
 Compile:
 
 ```bash
-python3 -m pip install --upgrade build
-python3 -m build
-poetry
+poetry build
 ```
 
+Publish:
 
+```bash
+poetry publish
+```
 
 
 ### References / Further reading 

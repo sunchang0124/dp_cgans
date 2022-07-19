@@ -187,7 +187,8 @@ class DP_CGAN(DPCGANModel):
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
                  log_frequency=True, verbose=False, epochs=300, pac=10, cuda=True, 
-                 rounding='auto', min_value='auto', max_value='auto', private=False):
+                 rounding='auto', min_value='auto', max_value='auto', private=False,
+                 ontology=None):
         super().__init__(
             field_names=field_names,
             primary_key=primary_key,
