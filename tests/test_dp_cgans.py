@@ -3,7 +3,7 @@ from dp_cgans import DP_CGAN
 
 
 def test_dp_cgans():
-    print('Testing')
+    print('Testing DP_CGAN')
 
     tabular_data=pd.read_csv("dataset/example_tabular_data_UCIAdult.csv")
 
@@ -20,10 +20,9 @@ def test_dp_cgans():
         private=False,
     )
 
-    print("Start training model")
     model.fit(tabular_data)
 
     # Sample the generated synthetic data
-    model.sample(100)
+    sample = model.sample(100)
 
-    assert True == True
+    assert len(sample) == 100

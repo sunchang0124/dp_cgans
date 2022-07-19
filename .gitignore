@@ -1,3 +1,5 @@
+loss_output_*.txt
+
 # Ingore Mac weird file
 **/.DS_Store
 

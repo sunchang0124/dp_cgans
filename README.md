@@ -96,7 +96,11 @@ model.sample(100)
 
 ## Development installation
 
-You will need to [install Poetry](https://python-poetry.org/docs/)
+You will need to [install Poetry](https://python-poetry.org/docs/). Be careful as the devs of poetry are not competent enough to properly set the right python version, poetry will use 3.10 by default, but you need to use 3.9
+
+```bash
+poetry env use $(which python)
+```
 
 Clone the repository:
 
@@ -108,12 +112,14 @@ Install the dependencies:
 
 ```bash
 python3 -m pip install -e .
+poetry install
 ```
 
 Run tests:
 
 ```bash
 python3 -m pytest -s
+poetry run pytest -s
 ```
 
 Compile:
@@ -121,6 +127,7 @@ Compile:
 ```bash
 python3 -m pip install --upgrade build
 python3 -m build
+poetry
 ```
 
 

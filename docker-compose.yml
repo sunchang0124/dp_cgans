@@ -3,7 +3,8 @@ version: "3"
 services:
 
   dpcgans:
-    image: python:3.9
+    # image: python:3.9
+    build: .
     volumes:
-      - ./:/root
+      - ./:/app
     entrypoint: tail -f /dev/null
