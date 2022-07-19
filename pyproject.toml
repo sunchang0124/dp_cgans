@@ -1,0 +1,17 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel", 
+    "numpy",
+    "pandas",
+    "torch",
+    "scipy",
+    "rdt",
+    "sklearn",
+    "graphviz",
+    "faker",
+    "copulas",
+    "pyreadstat",
+    "sdv==0.14.0"
+]
+build-backend = "setuptools.build_meta"

@@ -578,6 +578,10 @@ class BaseTabularModel:
         with open(path, 'wb') as output:
             pickle.dump(self, output)
 
+    def xai_discriminator(self, data_samples):
+        discriminator_predict_score = self._xai_discriminator(data_samples)
+        return discriminator_predict_score
+
     @classmethod
     def load(cls, path):
         """Load a TabularModel instance from a given path.

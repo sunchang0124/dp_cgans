@@ -2,16 +2,16 @@ import torch
 
 
 class BaseSynthesizer:
-    """Base class for all default synthesizers of ``CGANS``.
-
-    This should contain the save/load methods.
-    """
 
     def save(self, path):
         device_backup = self._device
         self.set_device(torch.device("cpu"))
         torch.save(self, path)
         self.set_device(device_backup)
+    
+    def xai_discriminator(self, data_samples):
+        discriminator_predict_score = self._discriminator(data_samples)
+        return discriminator_predict_score
 
     @classmethod
     def load(cls, path):

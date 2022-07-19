@@ -180,6 +180,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
         self._transformer = None
         self._data_sampler = None
         self._generator = None
+        self._discriminator = None
 
     @staticmethod
     def _gumbel_softmax(logits, tau=1, hard=False, eps=1e-10, dim=-1):
@@ -258,9 +259,9 @@ class DPCGANSynthesizer(BaseSynthesizer):
 
     def _cond_loss_pair(self, data, c_pair, m_pair):
         
-        m_pair = m_pair.detach().numpy()
+        # m_pair = m_pair.detach().numpy()
         output_info_all_columns = self._transformer.output_info_list
-        loss = np.zeros((len(data)*int((len(m_pair[0])*(len(m_pair[0])-1))/2),len(m_pair[0])))
+        loss = torch.zeros((len(data)*int((m_pair.size()[1]*(m_pair.size()[1]-1))/2),m_pair.size()[1]))
         st_primary = 0
         st_primary_c = 0
         cnt = 0
@@ -291,25 +292,25 @@ class DPCGANSynthesizer(BaseSynthesizer):
                                 ed_secondary_c = st_secondary_c + span_info_secondary.dim
                                 
                                 real_data_labels = torch.cat([data[:,st_primary:ed_primary], data[:,st_secondary:ed_secondary]], dim=1)
-                                class_counts = real_data_labels.detach().numpy().sum(axis=0)
+                                class_counts = real_data_labels.sum(axis=0)
 
-                                pos_weights = np.ones_like(class_counts)
+                                pos_weights = torch.ones_like(class_counts)
                                 neg_counts = [len(data)-pos_count for pos_count in class_counts]
                                 for cdx, (pos_count, neg_count) in enumerate(zip(class_counts,  neg_counts)):
                                     pos_weights[cdx] = neg_count / (pos_count + 1e-5)
                                 
-                                torch_pos_weights = torch.as_tensor(pos_weights, dtype=torch.float)
+                                # torch_pos_weights = torch.as_tensor(pos_weights, dtype=torch.float)
+                                # print(pos_weights)
 
-
-                                criterion = BCEWithLogitsLoss(reduction='none', pos_weight=torch_pos_weights)
+                                criterion = BCEWithLogitsLoss(reduction='none')#, pos_weight=pos_weights)
                                 calculate_loss = criterion(
                                     torch.cat([data[:,st_primary:ed_primary], data[:,st_secondary:ed_secondary]], dim=1),
                                     torch.cat([c_pair[:,st_primary_c:ed_primary_c], c_pair[:,st_secondary_c:ed_secondary_c]],dim=1)
                                     )
 
-                                calculate_loss = calculate_loss.detach().numpy()
-                                loss[cnt*len(data):(cnt+1)*len(data),cnt_primary] = np.sum(calculate_loss[:,:span_info_primary.dim],axis=1) * m_pair[:,cnt_primary]
-                                loss[cnt*len(data):(cnt+1)*len(data),cnt_secondary] = np.sum(calculate_loss[:,span_info_primary.dim:],axis=1) * m_pair[:,cnt_secondary]
+                                # calculate_loss = calculate_loss.detach().numpy()
+                                loss[cnt*len(data):(cnt+1)*len(data),cnt_primary] = calculate_loss[:,:span_info_primary.dim].sum(axis=1) * m_pair[:,cnt_primary]
+                                loss[cnt*len(data):(cnt+1)*len(data),cnt_secondary] = calculate_loss[:,span_info_primary.dim:].sum(axis=1) * m_pair[:,cnt_secondary]
 
                                 st_secondary = ed_secondary
                                 st_secondary_c = ed_secondary_c
@@ -401,7 +402,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
             data_dim
         ).to(self._device)
 
-        discriminator = Discriminator(
+        self._discriminator = Discriminator(
             data_dim + self._data_sampler.dim_cond_vec(),
             self._discriminator_dim,
             pac=self.pac
@@ -413,7 +414,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
         )
 
         optimizerD = optim.Adam(
-            discriminator.parameters(), lr=self._discriminator_lr,
+            self._discriminator.parameters(), lr=self._discriminator_lr,
             betas=(0.5, 0.9), weight_decay=self._discriminator_decay
         )
 
@@ -482,27 +483,26 @@ class DPCGANSynthesizer(BaseSynthesizer):
                                 real_cat = real
                                 fake_cat = fake
 
-                            # print(real_cat[0])
-                            y_fake = discriminator(fake_cat)
-                            y_real = discriminator(real_cat)
+                            y_fake = self._discriminator(fake_cat)
+                            y_real = self._discriminator(real_cat)
 
                             loss_d = -(torch.mean(y_real) - torch.mean(y_fake))
 
      
                             #### DP ####
                             if self.private:
-                                sigma = 5
+                                sigma = 1
                                 weight_clip = 0.01 
 
                                 if sigma is not None:
-                                    for parameter in discriminator.parameters():
+                                    for parameter in self._discriminator.parameters():
                                         parameter.register_hook(
-                                            lambda grad: grad + (1 / self._batch_size) * sigma
-                                            * torch.randn(parameter.shape)
+                                            lambda grad: grad.cuda() + (1 / self._batch_size) * sigma
+                                            * torch.randn(parameter.shape).cuda()
                                         )
                             #### DP ####
 
-                            pen = discriminator.calc_gradient_penalty(
+                            pen = self._discriminator.calc_gradient_penalty(
                                 real_cat, fake_cat, self._device, self.pac)
 
                             optimizerD.zero_grad()
@@ -513,7 +513,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
                             if self.private:
                                 #### DP ####
                                 # Weight clipping for privacy guarantee
-                                for param in discriminator.parameters():
+                                for param in self._discriminator.parameters():
                                     param.data.clamp_(-weight_clip, weight_clip)
                                 #### DP ####
 
@@ -556,9 +556,9 @@ class DPCGANSynthesizer(BaseSynthesizer):
                         # loss_g = -torch.mean(y_fake) + cross_entropy# + rules_penalty
 
                         if c_pair_1 is not None:
-                            y_fake = discriminator(torch.cat([fakeact, c_pair_1], dim=1))
+                            y_fake = self._discriminator(torch.cat([fakeact, c_pair_1], dim=1))
                         else:
-                            y_fake = discriminator(fakeact)
+                            y_fake = self._discriminator(fakeact)
 
                         if condvec_pair is None:
                             cross_entropy_pair = 0
@@ -608,10 +608,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
 
                         
                     ######## ADDED ########
-                    if i % 100 == 0:
-                        self.sample(len(train_data)).to_csv("sample_%s.csv" %str(i))
-
-    
+                    
 
     def sample(self, n, condition_column=None, condition_value=None):
         """Sample data similar to the training data.
@@ -669,3 +666,38 @@ class DPCGANSynthesizer(BaseSynthesizer):
         self._device = device
         if self._generator is not None:
             self._generator.to(self._device)
+
+
+    def xai_discriminator(self, data_samples):
+
+        # for exlain AI (SHAP) the single row from the pd.DataFrame needs to be transformed. 
+        data_samples = pd.DataFrame(data_samples).T
+
+        condvec_pair = self._data_sampler.sample_condvec_pair(len(data_samples))
+        c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
+
+        if condvec_pair is None:
+            c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
+            real = self._data_sampler.sample_data_pair(len(data_samples), col_pair_1, opt_pair_1)
+        else:
+            c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
+            c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
+            m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
+
+            perm = np.arange(len(data_samples))
+            np.random.shuffle(perm)
+
+            real = self._data_sampler.sample_data_pair(len(data_samples), col_pair_1[perm], opt_pair_1[perm])
+            c_pair_2 = c_pair_1[perm]
+
+        real = torch.from_numpy(real.astype('float32')).to(self._device)
+        
+        if col_pair_1 is not None:
+            real_cat = torch.cat([real, c_pair_2], dim=1)
+        else:
+            real_cat = real
+
+        ### Wassertein distance?? (a data point from real training data's wassertain distance means what?)
+        discriminator_predict_score = self._discriminator(real_cat)
+
+        return discriminator_predict_score

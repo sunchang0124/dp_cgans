@@ -15,7 +15,6 @@ __version__ = '0.0.7'
 
 
 from dp_cgans import constraints, metadata
-from dp_cgans.rdf_to_tabular import RDF_to_Tabular
 from dp_cgans.metadata import Metadata, Table
 from dp_cgans.dp_cgan_init import DP_CGAN
 from dp_cgans.synthesizers.dp_cgan import DPCGANSynthesizer

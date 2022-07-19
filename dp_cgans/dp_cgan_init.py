@@ -82,6 +82,11 @@ class DPCGANModel(BaseTabularModel):
         raise NotImplementedError(f"{self._MODEL_CLASS} doesn't support conditional sampling.")
 
 
+    def _xai_discriminator(self, data_samples):
+
+        return self._model.xai_discriminator(data_samples)
+
+
 class DP_CGAN(DPCGANModel):
     """Model wrapping ``CTGANSynthesizer`` model.
 
