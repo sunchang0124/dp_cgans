@@ -1,4 +1,4 @@
-# DP-CGANS (Differentially Private - Conditional Generative Adversarial NetworkS)
+# Onto-DP-CGANS (Ontology-embedding Differentially Private - Conditional Generative Adversarial NetworkS)
 
 <!-- [![Development Status](https://img.shields.io/badge/Development%20Status-2%20--%20Pre--Alpha-yellow)](https://pypi.org/search/?c=Development+Status+%3A%3A+2+-+Pre-Alpha) -->
 [![PyPi Shield](https://img.shields.io/badge/pypi-v0.0.2-blue)](https://pypi.org/project/dp-cgans/)
