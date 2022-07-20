@@ -40,6 +40,7 @@ sdv = "0.14.0"
 gensim = "^4.2.0"
 nltk = "^3.7"
 rdflib = "^6.1.1"
+Cython = "^0.29.30"
 Owlready2 = "^0.38"
 
 
