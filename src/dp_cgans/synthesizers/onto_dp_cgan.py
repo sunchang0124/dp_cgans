@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # ## 2021-11-16 ###
 # pos_weight in BCEWithLogitsLoss model #
 # sigma = 5 #
@@ -13,11 +12,9 @@ from packaging import version
 from torch import optim
 from torch.nn import BatchNorm1d, Dropout, LeakyReLU, Linear, Module, ReLU, Sequential, functional, BCEWithLogitsLoss, utils
 
-from dp_cgans.data_sampler import DataSampler
+from dp_cgans.onto_data_sampler import Onto_DataSampler
 from dp_cgans.data_transformer import DataTransformer
 from dp_cgans.synthesizers.base import BaseSynthesizer
-
-from dp_cgans.onto_data_sampler import Onto_DataSampler
 
 import scipy.stats
 
@@ -655,3 +652,38 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         self._device = device
         if self._generator is not None:
             self._generator.to(self._device)
+
+
+    def xai_discriminator(self, data_samples):
+
+        # for exlain AI (SHAP) the single row from the pd.DataFrame needs to be transformed. 
+        data_samples = pd.DataFrame(data_samples).T
+
+        condvec_pair = self._data_sampler.sample_condvec_pair(len(data_samples))
+        c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
+
+        if condvec_pair is None:
+            c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
+            real = self._data_sampler.sample_data_pair(len(data_samples), col_pair_1, opt_pair_1)
+        else:
+            c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
+            c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
+            m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
+
+            perm = np.arange(len(data_samples))
+            np.random.shuffle(perm)
+
+            real = self._data_sampler.sample_data_pair(len(data_samples), col_pair_1[perm], opt_pair_1[perm])
+            c_pair_2 = c_pair_1[perm]
+
+        real = torch.from_numpy(real.astype('float32')).to(self._device)
+
+        if col_pair_1 is not None:
+            real_cat = torch.cat([real, c_pair_2], dim=1)
+        else:
+            real_cat = real
+
+        ### Wassertein distance?? (a data point from real training data's wassertain distance means what?)
+        discriminator_predict_score = self._discriminator(real_cat)
+
+        return discriminator_predict_score

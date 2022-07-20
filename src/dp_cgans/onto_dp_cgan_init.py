@@ -1,10 +1,8 @@
 """Wrapper around CTGAN model."""
 
 import numpy as np
-from dp_cgans.synthesizers.dp_cgan import DPCGANSynthesizer
 from dp_cgans.synthesizers.onto_dp_cgan import Onto_DPCGANSynthesizer
 
-from dp_cgans.base import BaseTabularModel
 from dp_cgans.onto_base import Onto_BaseTabularModel
 
 
@@ -82,6 +80,11 @@ class DPCGANModel(Onto_BaseTabularModel):
             return self._model.sample(num_rows)
 
         raise NotImplementedError(f"{self._MODEL_CLASS} doesn't support conditional sampling.")
+
+
+    def _xai_discriminator(self, data_samples):
+
+        return self._model.xai_discriminator(data_samples)
 
 
 class Onto_DP_CGAN(DPCGANModel):

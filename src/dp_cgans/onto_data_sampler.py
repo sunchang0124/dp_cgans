@@ -10,10 +10,6 @@ class Onto_DataSampler(object):
     def __init__(self, data, embeddings_fn, output_info, log_frequency):
         self._data = data
 
-        # retrieving the relations and entities embeddings
-        with open(embeddings_fn, 'rb') as f:
-            self._embeddings = pkl.load(f)
-
         def is_discrete_column(column_info):
             return (len(column_info) == 1
                     and column_info[0].activation_fn == "softmax")

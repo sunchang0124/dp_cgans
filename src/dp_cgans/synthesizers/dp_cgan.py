@@ -23,6 +23,7 @@ from datetime import datetime
 from contextlib import redirect_stdout
 from dp_cgans.rdp_accountant import compute_rdp, get_privacy_spent
 
+
 class Discriminator(Module):
 
     def __init__(self, input_dim, discriminator_dim, pac=10):
