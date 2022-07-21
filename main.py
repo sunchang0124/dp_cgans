@@ -2,19 +2,21 @@ from dp_cgans import DP_CGAN, Onto_DP_CGAN
 import pandas as pd
 import os
 
-result_samples_path = '../persistent/data/gan_syn_data/'
+result_samples_path = '../persistent/model'
 if not os.path.exists(result_samples_path):
     os.makedirs(result_samples_path)
 
-tabular_data = pd.read_csv("../persistent/data/syn_data/small_syn_patients_data_seen.csv", header=0)
+tabular_data = pd.read_csv("./dataset/example_tabular_data_UCIAdult.csv", header=0)
+# tabular_data = pd.read_csv("../persistent/data/syn_data/small_syn_patients_data_seen.csv", header=0)
 
 # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
 model = Onto_DP_CGAN(
     embeddings_fn='../persistent/data/ontology/embeddings/Onto_TransE.pkl',
     sample_epochs=100,
     sample_epochs_path=result_samples_path,
-    primary_key='patient_id',
-    epochs=1, # number of training epochs
+    log_file_path=result_samples_path,
+    # primary_key='patient_id',
+    epochs=2, # number of training epochs
     batch_size=1000, # the size of each batch
     log_frequency=True,
     verbose=True,
@@ -30,6 +32,9 @@ model = Onto_DP_CGAN(
 print("Start model training")
 model.fit(tabular_data)
 
+print('Training finished, saving the model')
+model.save('../persistent/model/onto_dp_cgans_model.pkl')
+
 # Sample the generated synthetic data
 nb_rows = 100
-model.sample(nb_rows).to_csv(os.path.join(result_samples_path, f'final_sample_{nb_rows}.csv')
+model.sample(nb_rows).to_csv(os.path.join(result_samples_path, f'final_sample_{nb_rows}_rows.csv'))

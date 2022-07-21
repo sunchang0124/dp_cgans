@@ -90,10 +90,12 @@ class Onto_DP_CGAN(DPCGANModel):
     """Model wrapping ``CTGANSynthesizer`` model.
 
     Args:
-        sample_epochs (int):
-            Number of epochs before sampling, 0 or less to never sample. Defaults to 100.
         sample_epochs_path (str):
             Path to save the samples each sample_epochs.
+        log_file_path (str):
+           Path to log the losses if verbose is True
+        sample_epochs (int):
+            Number of epochs before sampling, 0 or less to never sample. Defaults to 100.
         field_names (list[str]):
             List of names of the fields that need to be modeled
             and included in the generated output data. Any additional
@@ -184,8 +186,8 @@ class Onto_DP_CGAN(DPCGANModel):
 
     _MODEL_CLASS = Onto_DPCGANSynthesizer
 
-    def __init__(self, embeddings_fn, sample_epochs_path, sample_epochs=100,
-                 field_names=None, field_types=None, field_transformers=None,
+    def __init__(self, embeddings_fn, sample_epochs_path, log_file_path,
+                 sample_epochs=100, field_names=None, field_types=None, field_transformers=None,
                  anonymize_fields=None, primary_key=None, constraints=None,
                  table_metadata=None, embedding_dim=128, generator_dim=(256, 256),
                  discriminator_dim=(256, 256), generator_lr=2e-4, generator_decay=1e-6,
@@ -211,6 +213,7 @@ class Onto_DP_CGAN(DPCGANModel):
             'embedding_dim': embedding_dim,
             'sample_epochs': sample_epochs,
             'sample_epochs_path': sample_epochs_path,
+            'log_file_path': log_file_path,
             'generator_dim': generator_dim,
             'discriminator_dim': discriminator_dim,
             'generator_lr': generator_lr,
