@@ -6,8 +6,8 @@ result_samples_path = '../persistent/model'
 if not os.path.exists(result_samples_path):
     os.makedirs(result_samples_path)
 
-tabular_data = pd.read_csv("./dataset/example_tabular_data_UCIAdult.csv", header=0)
-# tabular_data = pd.read_csv("../persistent/data/syn_data/small_syn_patients_data_seen.csv", header=0)
+# tabular_data = pd.read_csv("./dataset/example_tabular_data_UCIAdult.csv", header=0)
+tabular_data = pd.read_csv("../persistent/data/syn_data/small_syn_patients_data_seen.csv", header=0)
 
 # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
 model = Onto_DP_CGAN(
