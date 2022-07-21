@@ -105,6 +105,10 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
     For more details about the process, please check the [Modeling Tabular data using
     Conditional GAN](https://arxiv.org/abs/1907.00503) paper.
     Args:
+        sample_epochs (int):
+            Number of epochs before sampling, 0 or less to never sample. Defaults to 100.
+        sample_epochs_path (str):
+            Path to save the samples each sample_epochs.
         embedding_dim (int):
             Size of the random sample passed to the Generator. Defaults to 128.
         generator_dim (tuple or list of ints):
@@ -143,8 +147,8 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             Defaults to ``True``.
     """
 
-    def __init__(self, embeddings_fn, embedding_dim=128, 
-                 generator_dim=(256, 256), discriminator_dim=(256, 256),
+    def __init__(self, embeddings_fn, sample_epochs_path, embedding_dim=128, 
+                 sample_epochs=100, generator_dim=(256, 256), discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
                  log_frequency=True, verbose=False, epochs=300, pac=10, cuda=True, private=False, conditional_columns=None):
@@ -152,8 +156,11 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         assert batch_size % 2 == 0
 
         self._embeddings_fn = embeddings_fn
-
         self._embedding_dim = embedding_dim
+
+        self.sample_epochs = sample_epochs
+        self.sample_epochs_path = sample_epochs_path
+
         self._generator_dim = generator_dim
         self._discriminator_dim = discriminator_dim
 
@@ -390,8 +397,10 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                 DeprecationWarning
             )
 
+        print('before transformer fit')
         self._transformer = DataTransformer()
         self._transformer.fit(train_data, discrete_columns)
+        print('after transformer fit')
 
         train_data = self._transformer.transform(train_data)
 
@@ -430,171 +439,187 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         steps_per_epoch = max(len(train_data) // self._batch_size, 1)
         ######## ADDED ########
+        print('before with open')
         with open('loss_output_%s.txt'%str(epochs), 'w') as f:
-            with redirect_stdout(f):
+            # with redirect_stdout(f):
                 ######## ADDED ########
-                for i in range(epochs):
-                    for id_ in range(steps_per_epoch):
+            print('aftertt with open')
+            for i in range(epochs):
+                for id_ in range(steps_per_epoch):
 
-                        for n in range(self._discriminator_steps):
-                            fakez = torch.normal(mean=mean, std=std)
-
-                            condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
-                            c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
-
-                            if condvec_pair is None:
-                                c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
-                                real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1, opt_pair_1)
-                            else:
-                                c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
-                                c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
-                                m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
-                                fakez = torch.cat([fakez, c_pair_1], dim=1)
-
-                                perm = np.arange(self._batch_size)
-                                np.random.shuffle(perm)
-
-                                real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1[perm], opt_pair_1[perm])
-                                c_pair_2 = c_pair_1[perm]
-
-                            fake = self._generator(fakez) # categories (unique value count) + continuous (1+n_components)
-                            fakeact = self._apply_activate(fake)
-
-                            real = torch.from_numpy(real.astype('float32')).to(self._device)
-
-                            if col_pair_1 is not None:
-                                fake_cat = torch.cat([fakeact, c_pair_1], dim=1)
-                                real_cat = torch.cat([real, c_pair_2], dim=1)
-                            else:
-                                real_cat = real
-                                fake_cat = fake
-
-                            # print(real_cat[0])
-                            y_fake = discriminator(fake_cat)
-                            y_real = discriminator(real_cat)
-
-                            loss_d = -(torch.mean(y_real) - torch.mean(y_fake))
-
-
-                            #### DP ####
-                            if self.private:
-                                sigma = 5
-                                weight_clip = 0.01 
-
-                                if sigma is not None:
-                                    for parameter in discriminator.parameters():
-                                        parameter.register_hook(
-                                            lambda grad: grad + (1 / self._batch_size) * sigma
-                                            * torch.randn(parameter.shape)
-                                        )
-                            #### DP ####
-
-                            pen = discriminator.calc_gradient_penalty(
-                                real_cat, fake_cat, self._device, self.pac)
-
-                            optimizerD.zero_grad()
-                            pen.backward(retain_graph=True) # https://machinelearningmastery.com/how-to-implement-wasserstein-loss-for-generative-adversarial-networks/ 
-                            loss_d.backward()
-                            optimizerD.step()
-
-                            if self.private:
-                                #### DP ####
-                                # Weight clipping for privacy guarantee
-                                for param in discriminator.parameters():
-                                    param.data.clamp_(-weight_clip, weight_clip)
-                                #### DP ####
-
+                    for n in range(self._discriminator_steps):
                         fakez = torch.normal(mean=mean, std=std)
+
+                        print('before the sampling')
                         condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
+                        c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
 
-                        # if condvec is None:
-                        #     c1, m1, col, opt = None, None, None, None
-                        # else:
-                        #     c1, m1, col, opt = condvec
-
-                        #     c1 = torch.from_numpy(c1).to(self._device)
-                        #     m1 = torch.from_numpy(m1).to(self._device)
-                        #     fakez = torch.cat([fakez, c1], dim=1)
+                        print(f'c_pair_1: {c_pair_1}, m_pair_1: {m_pair_1}, col_pair_1: {col_pair_1}, opt_pair_1: {opt_pair_1}')
+                        """Generate the conditional vector for training.
+                            Returns:
+                                cond (batch x #categories):
+                                    The conditional vector.
+                                mask (batch x #discrete columns):
+                                    A one-hot vector indicating the selected discrete column.
+                                discrete column id (batch):
+                                    Integer representation of mask.
+                                category_id_in_col (batch):
+                                    Selected category in the selected discrete column.
+                        """
 
                         if condvec_pair is None:
                             c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
+                            real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1, opt_pair_1)
                         else:
                             c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
-
                             c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
                             m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
                             fakez = torch.cat([fakez, c_pair_1], dim=1)
 
-                        fake = self._generator(fakez)
+                            perm = np.arange(self._batch_size)
+                            np.random.shuffle(perm)
+
+                            real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1[perm], opt_pair_1[perm])
+                            c_pair_2 = c_pair_1[perm]
+
+                        fake = self._generator(fakez) # categories (unique value count) + continuous (1+n_components)
                         fakeact = self._apply_activate(fake)
 
-                        # if c1 is not None:
-                        #     y_fake = discriminator(torch.cat([fakeact, c1], dim=1))
-                        # else:
-                        #     y_fake = discriminator(fakeact)
+                        real = torch.from_numpy(real.astype('float32')).to(self._device)
 
-                        # if condvec is None:
-                        #     cross_entropy = 0
-                        # else:
-                        #     cross_entropy = self._cond_loss(fake, c1, m1)
-
-                        # loss_g = -torch.mean(y_fake) + cross_entropy# + rules_penalty
-
-                        if c_pair_1 is not None:
-                            y_fake = discriminator(torch.cat([fakeact, c_pair_1], dim=1))
+                        if col_pair_1 is not None:
+                            fake_cat = torch.cat([fakeact, c_pair_1], dim=1)
+                            real_cat = torch.cat([real, c_pair_2], dim=1)
                         else:
-                            y_fake = discriminator(fakeact)
+                            real_cat = real
+                            fake_cat = fake
 
-                        if condvec_pair is None:
-                            cross_entropy_pair = 0
-                        else:
-                            cross_entropy_pair = self._cond_loss_pair(fake, c_pair_1, m_pair_1)
+                        # print(real_cat[0])
+                        y_fake = discriminator(fake_cat)
+                        y_real = discriminator(real_cat)
 
-                        loss_g = -torch.mean(y_fake) + cross_entropy_pair # + rules_penalty
+                        loss_d = -(torch.mean(y_real) - torch.mean(y_fake))
 
-                        optimizerG.zero_grad()
-                        loss_g.backward()
-                        optimizerG.step()
 
-                    if self._verbose:
-                        ######## ADDED ########
-                        now = datetime.now()
-                        current_time = now.strftime("%H:%M:%S")
+                        #### DP ####
+                        if self.private:
+                            sigma = 5
+                            weight_clip = 0.01 
 
-                        # Calculate the current privacy cost using the accountant
-                        # https://github.com/BorealisAI/private-data-generation/blob/master/models/dp_wgan.py
-                        # https://github.com/tensorflow/privacy/tree/master/tutorials/walkthrough
+                            if sigma is not None:
+                                for parameter in discriminator.parameters():
+                                    parameter.register_hook(
+                                        lambda grad: grad + (1 / self._batch_size) * sigma
+                                        * torch.randn(parameter.shape)
+                                    )
+                        #### DP ####
 
-                        print(current_time, f"Epoch {i+1}, Loss G: {loss_g.detach().cpu(): .4f},"
-                            f"Loss D: {loss_d.detach().cpu(): .4f}", flush=True)
+                        pen = discriminator.calc_gradient_penalty(
+                            real_cat, fake_cat, self._device, self.pac)
 
+                        optimizerD.zero_grad()
+                        pen.backward(retain_graph=True) # https://machinelearningmastery.com/how-to-implement-wasserstein-loss-for-generative-adversarial-networks/ 
+                        loss_d.backward()
+                        optimizerD.step()
 
                         if self.private:
-                            orders = [1 + x / 10. for x in range(1, 100)]
-                            sampling_probability = self._batch_size/len(train_data)
-                            delta = 2e-6
-                            rdp = compute_rdp(q=sampling_probability,
-                                                noise_multiplier=sigma,
-                                                steps=i * steps_per_epoch,
-                                                orders=orders)
-                            epsilon, _, opt_order = get_privacy_spent(orders, rdp, target_delta=delta) # target_delta=1e-5
+                            #### DP ####
+                            # Weight clipping for privacy guarantee
+                            for param in discriminator.parameters():
+                                param.data.clamp_(-weight_clip, weight_clip)
+                            #### DP ####
 
-                            print('differential privacy with eps = {:.3g} and delta = {}.'.format(
-                                epsilon, delta))
-                            print('The optimal RDP order is {}.'.format(opt_order))
+                    fakez = torch.normal(mean=mean, std=std)
+                    condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
 
-                            if opt_order == max(orders) or opt_order == min(orders):
-                                print('The privacy estimate is likely to be improved by expanding '
-                                    'the set of orders.')
-                        else:
-                            epsilon = np.nan
+                    # if condvec is None:
+                    #     c1, m1, col, opt = None, None, None, None
+                    # else:
+                    #     c1, m1, col, opt = condvec
 
-                        
+                    #     c1 = torch.from_numpy(c1).to(self._device)
+                    #     m1 = torch.from_numpy(m1).to(self._device)
+                    #     fakez = torch.cat([fakez, c1], dim=1)
+
+                    if condvec_pair is None:
+                        c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
+                    else:
+                        c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
+
+                        c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
+                        m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
+                        fakez = torch.cat([fakez, c_pair_1], dim=1)
+
+                    fake = self._generator(fakez)
+                    fakeact = self._apply_activate(fake)
+
+                    # if c1 is not None:
+                    #     y_fake = discriminator(torch.cat([fakeact, c1], dim=1))
+                    # else:
+                    #     y_fake = discriminator(fakeact)
+
+                    # if condvec is None:
+                    #     cross_entropy = 0
+                    # else:
+                    #     cross_entropy = self._cond_loss(fake, c1, m1)
+
+                    # loss_g = -torch.mean(y_fake) + cross_entropy# + rules_penalty
+
+                    if c_pair_1 is not None:
+                        y_fake = discriminator(torch.cat([fakeact, c_pair_1], dim=1))
+                    else:
+                        y_fake = discriminator(fakeact)
+
+                    if condvec_pair is None:
+                        cross_entropy_pair = 0
+                    else:
+                        cross_entropy_pair = self._cond_loss_pair(fake, c_pair_1, m_pair_1)
+
+                    loss_g = -torch.mean(y_fake) + cross_entropy_pair # + rules_penalty
+
+                    optimizerG.zero_grad()
+                    loss_g.backward()
+                    optimizerG.step()
+
+                if self._verbose:
                     ######## ADDED ########
-                    if i % 100 == 0:
-                        self.sample(len(train_data)).to_csv("sample_%s.csv" %str(i))
+                    now = datetime.now()
+                    current_time = now.strftime("%H:%M:%S")
 
-    
+                    # Calculate the current privacy cost using the accountant
+                    # https://github.com/BorealisAI/private-data-generation/blob/master/models/dp_wgan.py
+                    # https://github.com/tensorflow/privacy/tree/master/tutorials/walkthrough
+
+                    print(current_time, f"Epoch {i+1}, Loss G: {loss_g.detach().cpu(): .4f},"
+                        f"Loss D: {loss_d.detach().cpu(): .4f}", flush=True)
+
+
+                    if self.private:
+                        orders = [1 + x / 10. for x in range(1, 100)]
+                        sampling_probability = self._batch_size/len(train_data)
+                        delta = 2e-6
+                        rdp = compute_rdp(q=sampling_probability,
+                                            noise_multiplier=sigma,
+                                            steps=i * steps_per_epoch,
+                                            orders=orders)
+                        epsilon, _, opt_order = get_privacy_spent(orders, rdp, target_delta=delta) # target_delta=1e-5
+
+                        print('differential privacy with eps = {:.3g} and delta = {}.'.format(
+                            epsilon, delta))
+                        print('The optimal RDP order is {}.'.format(opt_order))
+
+                        if opt_order == max(orders) or opt_order == min(orders):
+                            print('The privacy estimate is likely to be improved by expanding '
+                                'the set of orders.')
+                    else:
+                        epsilon = np.nan
+
+
+                ######## ADDED ########
+                if self.sample_epochs > 0 and i % self.sample_epochs == 0:
+                    self.sample(len(train_data)).to_csv("sample_%s.csv" % str(i))
+
+
 
     def sample(self, n, condition_column=None, condition_value=None):
         """Sample data similar to the training data.
