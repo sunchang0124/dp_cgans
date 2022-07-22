@@ -409,10 +409,12 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         self._data_sampler = Onto_DataSampler(
             train_data,
             self._transformer.output_info_list,
-            self._log_frequency)
+            self._log_frequency,
+            self._embedding)
 
         data_dim = self._transformer.output_dimensions
 
+        print(f'Embedding dim: {self._embedding_dim}\nDim conc vec: {self._data_sampler.dim_cond_vec()}\ndata_dim: {data_dim}\nGenerator dim: {self._generator_dim}\nDiscriminator dim: {self._discriminator_dim}')
         self._generator = Generator(
             self._embedding_dim + self._data_sampler.dim_cond_vec(), # number of categories in the whole dataset.
             self._generator_dim,
@@ -454,16 +456,20 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     fakez = torch.normal(mean=mean, std=std)
 
                     condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
+
                     c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
 
                     if condvec_pair is None:
                         c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
                         real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1, opt_pair_1)
                     else:
-                        c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
+                        # retrieving ontology embeddings
+                        # TODO: change generator+discriminator input dimensions
+                        embeddings = self._data_sampler.get_embeds_from_col_id(col_pair_1, self._batch_size)
+                        embeddings = torch.from_numpy(embeddings).to(self._device)
                         c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
                         m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
-                        fakez = torch.cat([fakez, c_pair_1], dim=1)
+                        fakez = torch.cat([fakez, embeddings], dim=1)
 
                         perm = np.arange(self._batch_size)
                         np.random.shuffle(perm)

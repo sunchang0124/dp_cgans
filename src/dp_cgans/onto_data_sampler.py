@@ -7,8 +7,9 @@ import pickle as pkl
 class Onto_DataSampler(object):
     """DataSampler samples the conditional vector and corresponding data for CTGAN."""
 
-    def __init__(self, data, output_info, log_frequency):
+    def __init__(self, data, output_info, log_frequency, embedding=None):
         self._data = data
+        self._embedding = embedding
 
         def is_discrete_column(column_info):
             return (len(column_info) == 1
@@ -41,7 +42,6 @@ class Onto_DataSampler(object):
             else:
                 st += sum([span_info.dim for span_info in column_info])
         assert st == data.shape[1]
-
 
         self._rid_by_cat_cols_pair = []
         # Compute _rid_by_cat_cols_pair
@@ -366,3 +366,14 @@ class Onto_DataSampler(object):
                                              ] + condition_info["value_id"]
         vec[:, id] = 1
         return vec
+
+    def get_column_names_pair(self, col_id_1, col_id_2):
+        return (self._data.columns[col_id_1], self._data.columns[col_id_2])
+
+    def get_rd(self, row):
+        return self._data.iloc[row, 0]
+
+    def get_embeds_from_col_id(self, col_ids, batch_size):
+        cat_embeddings = np.zeros((batch_size, 3))
+        print(f'Col_ids {col_ids}')
+

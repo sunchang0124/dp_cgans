@@ -7,6 +7,9 @@ if not os.path.exists(result_samples_path):
     os.makedirs(result_samples_path)
 
 tabular_data = pd.read_csv("./dataset/example_tabular_data_UCIAdult.csv", header=0)
+print(tabular_data.shape)
+print(tabular_data.nunique())
+
 # tabular_data = pd.read_csv("../persistent/data/syn_data/small_syn_patients_data_seen.csv", header=0)
 
 onto_embedding = OntologyEmbedding(embedding_path='../persistent/data/ontology/embeddings/output',
