@@ -21,7 +21,6 @@ import scipy.stats
 
 ######## ADDED ########
 from datetime import datetime
-from contextlib import redirect_stdout
 from dp_cgans.rdp_accountant import compute_rdp, get_privacy_spent
 
 
@@ -110,6 +109,8 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             Path to save the samples each sample_epochs.
         log_file_path (str):
            Path to log the losses if verbose is True
+        embedding (OntologyEmbedding):
+            OntologyEmbedding instance to retrieve the ontology embeddings.
         sample_epochs (int):
             Number of epochs before sampling, 0 or less to never sample. Defaults to 100.
         embedding_dim (int):
@@ -150,7 +151,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             Defaults to ``True``.
     """
 
-    def __init__(self, embeddings_fn, log_file_path, sample_epochs_path, embedding_dim=128,
+    def __init__(self, log_file_path, sample_epochs_path, embedding=None, embedding_dim=128,
                  sample_epochs=100, generator_dim=(256, 256), discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
@@ -158,7 +159,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         assert batch_size % 2 == 0
 
-        self._embeddings_fn = embeddings_fn
+        self._embedding = embedding
         self._embedding_dim = embedding_dim
 
         self._sample_epochs = sample_epochs
@@ -318,7 +319,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
                                 torch_pos_weights = torch.as_tensor(pos_weights, dtype=torch.float)
 
-
                                 criterion = BCEWithLogitsLoss(reduction='none', pos_weight=torch_pos_weights)
                                 calculate_loss = criterion(
                                     torch.cat([data[:,st_primary:ed_primary], data[:,st_secondary:ed_secondary]], dim=1),
@@ -339,7 +339,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     st_sprimary_c = ed_primary_c
         # print(len(loss))
         return loss.sum() / len(loss)
-
 
     def _validate_discrete_columns(self, train_data, discrete_columns):
         """Check whether ``discrete_columns`` exists in ``train_data``.
@@ -409,7 +408,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         self._data_sampler = Onto_DataSampler(
             train_data,
-            self._embeddings_fn,
             self._transformer.output_info_list,
             self._log_frequency)
 
@@ -443,7 +441,9 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         steps_per_epoch = max(len(train_data) // self._batch_size, 1)
 
         if self._verbose:
-            f = open(os.path.join(self._log_file_path, f'loss_output_{epochs}.txt'), 'w')
+            now = datetime.now()
+            date_and_time = now.strftime("%Y_%m_%d_%H_%M_%S")
+            f = open(os.path.join(self._log_file_path, f'{date_and_time}_loss_output_{epochs}.txt'), 'w')
             f.close()
 
         ######## ADDED ########
@@ -573,13 +573,13 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             if self._verbose:
                 ######## ADDED ########
                 now = datetime.now()
-                current_time = now.strftime("%H:%M:%S")
+                current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
                 # Calculate the current privacy cost using the accountant
                 # https://github.com/BorealisAI/private-data-generation/blob/master/models/dp_wgan.py
                 # https://github.com/tensorflow/privacy/tree/master/tutorials/walkthrough
 
-                with open(os.path.join(self._log_file_path, f'loss_output_{epochs}.txt'), 'a') as log_file:
+                with open(os.path.join(self._log_file_path, f'{date_and_time}_loss_output_{epochs}.txt'), 'a') as log_file:
                     log_file.write(f'{current_time}   Epoch {i+1}   Loss G: {loss_g.detach().cpu():.4f}   Loss D: {loss_d.detach().cpu():.4f}\n')
 
                     if self.private:

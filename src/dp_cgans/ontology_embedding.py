@@ -1,29 +1,32 @@
 from gensim.models import KeyedVectors
+import numpy as np
 
 
 class OntologyEmbedding():
 
-    def __init__(self, embedding_path, hp_dict_fn, rd_dict_fn):
-        # load embeddings here
-        self._embedding_model = KeyedVectors.load(embedding_path, mmap='r')
-        self._hp_dict = {}
-        self._rd_dict = {}
+    def __init__(self, embedding_path, embedding_size, hp_dict_fn, rd_dict_fn):
+        self._embedding_model = KeyedVectors.load(embedding_path)
+        self._embedding_size = embedding_size
+        self._iri_dict = {}
 
         with open(hp_dict_fn) as f:
             for line in f:
-                (name, iri) = line.split(',')
-                self._hp_dict[name] = iri
+                (entity, iri) = line.split(';')
+                self._iri_dict[entity] = iri
 
         with open(rd_dict_fn) as f:
             for line in f:
-                (name, iri) = line.split(',')
-                self._rd_dict[name] = iri
+                (entity, iri) = line.split(';')
+                self._iri_dict[entity] = iri
 
-    def get_rd_iri(self, rd_name):
-        return self._rd_dict[rd_name]
+    def get_iri(self, entity):
+        return self._iri_dict.get(entity, None)
 
-    def get_hp_iri(self, hp_name):
-        return self._hp_dict[hp_name]
+    def get_embedding(self, entity):
+        iri = self.get_iri(entity)
+        if iri is not None:
+            return self._embedding_model.wv[iri]
+        return np.zeros(self._embedding_size)
 
-    def get_embedding(self, term):
-        return self._embedding_model.wv[term]
+    def get_embedding_size(self):
+        return self._embedding_size

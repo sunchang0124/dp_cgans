@@ -21,6 +21,7 @@ from dp_cgans.synthesizers.dp_cgan import DPCGANSynthesizer
 
 from dp_cgans.onto_dp_cgan_init import Onto_DP_CGAN
 from dp_cgans.synthesizers.onto_dp_cgan import Onto_DPCGANSynthesizer
+from dp_cgans.ontology_embedding import OntologyEmbedding
 
 __all__ = (
     'constraints',
@@ -30,5 +31,6 @@ __all__ = (
     'DP_CGAN',
     'Onto_DP_CGAN',
     'DPCGANSynthesizer',
-    'Onto_DPCGANSynthesizer'
+    'Onto_DPCGANSynthesizer',
+    'OntologyEmbedding'
 )

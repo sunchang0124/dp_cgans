@@ -7,7 +7,7 @@ import pickle as pkl
 class Onto_DataSampler(object):
     """DataSampler samples the conditional vector and corresponding data for CTGAN."""
 
-    def __init__(self, data, embeddings_fn, output_info, log_frequency):
+    def __init__(self, data, output_info, log_frequency):
         self._data = data
 
         def is_discrete_column(column_info):
@@ -263,7 +263,7 @@ class Onto_DataSampler(object):
         paired_discrete_column_id = []
         for iter_gen in range(0, batch):
             paired_discrete_column_id.append(np.random.choice(np.arange(self._n_discrete_columns), 2, replace=False)) 
-        
+
         # convert paired_discrete_column_id to current_id_pair type
         converted_paired_discrete_column_id = []
         for each in paired_discrete_column_id:
@@ -286,10 +286,10 @@ class Onto_DataSampler(object):
         pair_primary_secondary_cat = []
         pair_primary_secondary_col = []
         for itr_decimal in range(0, len(pair_id_decimal)):
- 
+
             pair_categories = self._categories_each_column * mask_pair[itr_decimal]
             pair_id_binary = list(np.binary_repr(pair_id_decimal[itr_decimal], width=(pair_categories.sum())))
-            
+
             first_cat = pair_categories[pair_categories!=0][0]
             pair_primary_position = np.argmax(pair_id_binary[:first_cat])
             pair_secondary_position = np.argmax(pair_id_binary[first_cat:])
@@ -298,14 +298,13 @@ class Onto_DataSampler(object):
             pair_primary_secondary_col.append(self._discrete_column_cond_st[np.where(mask_pair[itr_decimal]==1)[0]])
 
         pair_id_all_positions = np.add(np.array(pair_primary_secondary_col), np.array(pair_primary_secondary_cat))
-        
+
         cond_pair[np.arange(batch), pair_id_all_positions[:,0]] = 1
         cond_pair[np.arange(batch), pair_id_all_positions[:,1]] = 1
 
         return cond_pair, mask_pair, np.array(converted_paired_discrete_column_id), pair_id_in_col
         ### converted_paired_discrete_column_id [0,6]
         ### pair_id_in_col, 
-
 
     def sample_original_condvec(self, batch):
         """Generate the conditional vector for generation use original frequency."""
@@ -358,6 +357,7 @@ class Onto_DataSampler(object):
         return self._data[idx]
 
     def dim_cond_vec(self):
+        # return 3
         return self._n_categories
 
     def generate_cond_from_condition_column_info(self, condition_info, batch):
