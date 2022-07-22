@@ -3,6 +3,7 @@
 <!-- [![Development Status](https://img.shields.io/badge/Development%20Status-2%20--%20Pre--Alpha-yellow)](https://pypi.org/search/?c=Development+Status+%3A%3A+2+-+Pre-Alpha) -->
 [![PyPi Shield](https://img.shields.io/badge/pypi-v0.0.2-blue)](https://pypi.org/project/dp-cgans/)
 <!-- [![Tests](https://github.com/sdv-dev/SDV/workflows/Run%20Tests/badge.svg)](https://github.com/sdv-dev/SDV/actions?query=workflow%3A%22Run+Tests%22+branch%3Amaster) -->
+[![Test package](https://github.com/cudillal/dp_cgans/actions/workflows/test.yml/badge.svg)](https://github.com/cudillal/dp_cgans/actions/workflows/test.yml)
 
 **Abstract**: This repository presents a Conditional Generative Adversary Networks (GANs) on tabular data (and RDF data) combining with Differential Privacy techniques. 
 
