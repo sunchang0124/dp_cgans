@@ -6,6 +6,12 @@ name: Test package
 on:
   workflow_dispatch: 
   push:
+    paths:
+    - '**.py'
+    - '**.cfg'
+    - '**.lock'
+    - '**.toml'
+    - '**.yml'
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
