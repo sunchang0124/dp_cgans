@@ -42,6 +42,7 @@ nltk = "^3.7"
 rdflib = "^6.1.1"
 Cython = "^0.29.30"
 Owlready2 = "^0.38"
+owl2vec-star = {git = "https://github.com/cudillal/OWL2Vec-Star.git"}
 
 
 [tool.poetry.dev-dependencies]
