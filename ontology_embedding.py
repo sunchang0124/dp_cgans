@@ -12,7 +12,7 @@ nltk.download('punkt')
 # mix_doc
 gensim_model = owl2vec_star.extract_owl2vec_model(None, "./embedding.cfg", True, True, True)
 
-output_folder = '../persistent/data/ontology/embeddings/hpObo_hoom_ordo_10'
+output_folder = '../persistent/data/ontology/embeddings/hpObo_hoom_ordo'
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
@@ -20,4 +20,4 @@ if not os.path.exists(output_folder):
 gensim_model.save(os.path.join(output_folder, 'ontology.embeddings'))
 
 #Txt format
-gensim_model.wv.save_word2vec_format(output_folder+"ontology.embeddings.txt", binary=False)
+gensim_model.wv.save_word2vec_format(os.path.join(output_folder, "ontology.embeddings.txt"), binary=False)
