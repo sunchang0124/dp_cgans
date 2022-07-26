@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dp-cgans"
-version = "0.0.2"
+version = "0.0.3"
 description = ""
 authors = ["John Franey <johnfraney@gmail.com>"]
 maintainers = ["John Franey <johnfraney@gmail.com>"]
