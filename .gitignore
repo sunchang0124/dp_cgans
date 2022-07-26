@@ -1,4 +1,5 @@
 loss_output_*.txt
+synthetic_samples.csv
 
 # Ingore Mac weird file
 **/.DS_Store
