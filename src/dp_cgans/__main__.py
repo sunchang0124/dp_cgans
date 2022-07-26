@@ -1,26 +1,23 @@
 import glob
 import sys
 
-import click
+import typer
 import pandas as pd
 from dp_cgans import DP_CGAN
+import pkg_resources
 
 
-@click.group()
-def cli():
-    """Generate synthetic data"""
-    pass
+cli = typer.Typer()
 
-
-@cli.command(
-    help="Generate synthetic data"
-)
-@click.argument("input-file", nargs=1)
-@click.option("--epochs", default=100, help="Number of epochs")
-@click.option("--batch-size", default=1000, help="Batch size")
-@click.option("--output", default="synthetic_samples.csv", help="Path to the output")
-
-def gen(input_file, epochs, batch_size, output):
+@cli.command("gen")
+def cli_gen(
+    input_file: str,
+    gen_size: int = typer.Option(100, help="Number of rows in the generated samples file"),
+    epochs: int = typer.Option(100, help="Number of epochs"),
+    batch_size: int = typer.Option(1000, help="Batch size"),
+    output: str = typer.Option("synthetic_samples.csv", help="Path to the output"),
+    verbose: bool = typer.Option(True, help="Display logs")
+):
 
     tabular_data=pd.read_csv(input_file)
 
@@ -37,14 +34,21 @@ def gen(input_file, epochs, batch_size, output):
         private=False,
     )
 
+    if verbose: print(f'Model instantiated, fitting')
     model.fit(tabular_data)
 
+    if verbose: print(f'Model fit')
     # Sample the generated synthetic data
-    sample = model.sample(100)
+    sample = model.sample(gen_size)
 
     sample.to_csv(output)
+    if verbose: print(f'✔️ Samples generated in {output}')
 
-    # asset sample[0]['score'] >= 0.8
+
+@cli.command("version")
+def cli_version():
+    print(pkg_resources.get_distribution('dp_cgans').version)
+
 
 if __name__ == "__main__":
-    sys.exit(cli())
+    cli()

@@ -37,7 +37,7 @@ faker = "*"
 copulas = "*"
 pyreadstat = "*"
 sdv = "0.14.0"
-click = "*"
+typer = "*"
 
 
 [tool.poetry.dev-dependencies]
