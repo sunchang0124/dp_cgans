@@ -23,7 +23,21 @@ The library is still under development, so it is still in the pypi testing envir
 pip install dp-cgans
 ```
 
-### Quick start 
+### Use as a command-line interface
+
+You can easily generated synthetic data using your terminal.
+
+```bash
+dp-cgans gen dataset/example_tabular_data_UCIAdult.csv --epochs 2 --output out.csv --gen_size 100
+```
+
+Get a full rundown of the available options with
+
+```bash
+dp-cgans --help
+```
+
+### Use with python 
 
 1. if your input is tabular data (e.g., csv):
 
