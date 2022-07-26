@@ -2,8 +2,8 @@
 name = "dp-cgans"
 version = "0.0.3"
 description = ""
-authors = ["John Franey <johnfraney@gmail.com>"]
-maintainers = ["John Franey <johnfraney@gmail.com>"]
+authors = ["Chang Sun <johnfraney@gmail.com>", "Leopold", "Vincent"]
+maintainers = ["Chang Sun <johnfraney@gmail.com>"]
 readme = "README.md"
 license = "MIT"
 include = [
@@ -24,7 +24,7 @@ keywords = ["CGANS", "synthetic data"]
 
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.10"
+python = ">=3.8,<3.10"
 wheel = "*"
 numpy = "*"
 pandas = "*"
