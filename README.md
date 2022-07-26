@@ -18,7 +18,7 @@
 
 ### Prerequisites
 
-You will need Python 3.7+ and 
+You will need Python >=3.8+ and <3.10
 
 ### Installation
 The library is still under development, so it is still in the pypi testing environment. 
@@ -43,7 +43,7 @@ dp-cgans --help
 
 ### Use with python 
 
-1. if your input is tabular data (e.g., csv):
+If your input is tabular data (e.g., csv):
 
  ```python
 from dp_cgans import DP_CGAN
@@ -72,6 +72,7 @@ model.fit(tabular_data)
 model.sample(100)
  ```
 
+<!-- 
 2. If your input data is in RDF format:
 
   ```python
@@ -110,6 +111,7 @@ model.fit(tabular_data)
 # Sample the generated synthetic data
 model.sample(100)
   ```
+-->
 
 
 ## Development installation
