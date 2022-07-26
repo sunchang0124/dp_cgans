@@ -10,7 +10,7 @@ runner = CliRunner()
 def test_dp_cgans():
     print(f'Testing DP_CGAN {__version__}')
 
-    tabular_data=pd.read_csv("dataset/example_tabular_data_UCIAdult.csv")
+    tabular_data=pd.read_csv("resources/example_tabular_data_UCIAdult.csv")
 
     model = DP_CGAN(
         epochs=1, # number of training epochs
@@ -36,7 +36,7 @@ def test_dp_cgans():
 
 def test_cli():
     gen_size = 100
-    result = runner.invoke(cli, ["gen", "dataset/example_tabular_data_UCIAdult.csv", "--epochs", "2", "--gen-size", str(gen_size)])
+    result = runner.invoke(cli, ["gen", "resources/example_tabular_data_UCIAdult.csv", "--epochs", "2", "--gen-size", str(gen_size)])
     assert result.exit_code == 0
     gen_samples = pd.read_csv("synthetic_samples.csv")
     assert len(gen_samples) == gen_size

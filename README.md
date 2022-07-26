@@ -29,10 +29,17 @@ pip install dp-cgans
 
 ### Use as a command-line interface
 
-You can easily generated synthetic data using your terminal.
+You can easily generated synthetic data for a file using your terminal.
+
+To run our example download the [example data](https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv):
 
 ```bash
-dp-cgans gen dataset/example_tabular_data_UCIAdult.csv --epochs 2 --output out.csv --gen_size 100
+wget https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv
+```
+
+Then run dp-cgans:
+```bash
+dp-cgans gen example_tabular_data_UCIAdult.csv --epochs 2 --output out.csv --gen-size 100
 ```
 
 Get a full rundown of the available options with
@@ -49,7 +56,7 @@ If your input is tabular data (e.g., csv):
 from dp_cgans import DP_CGAN
 import pandas as pd
 
-tabular_data=pd.read_csv("../dataset/example_tabular_data_UCIAdult.csv")
+tabular_data=pd.read_csv("../resources/example_tabular_data_UCIAdult.csv")
 
 # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
 model = DP_CGAN(
@@ -80,7 +87,7 @@ from dp_cgans import DP_CGAN
 from dp_cgans import RDF_to_Tabular
 
 # Step 1. Load RDF to a plain table (dataframe)
-plain_tabular=RDF_to_Tabular(file_path="../dataset/example_rdf_data.ttl")
+plain_tabular=RDF_to_Tabular(file_path="../resources/example_rdf_data.ttl")
 
 # Step 2. Convert plain table to a structured table 
 # After step 1, RDF data will be converted a plain tabular dataset (all the nodes/entities will be presented as rows. Step 2 will structure the table by recognizing and sorting the types of the entities, replacing the URI with actual value which is attached to that URI. Users can decide how many levels they want to unfold their RDF models to tabular datasets.)
