@@ -1,4 +1,4 @@
-# DP-CGANS (Differentially Private - Conditional Generative Adversarial NetworkS)
+# 👯 DP-CGANS (Differentially Private - Conditional Generative Adversarial NetworkS)
 
 [![PyPi Shield](https://img.shields.io/pypi/v/dp-cgans)](https://pypi.org/project/dp-cgans/) [![Py versions](https://img.shields.io/pypi/pyversions/dp-cgans)](https://pypi.org/project/dp-cgans/) [![Test package](https://github.com/sunchang0124/dp_cgans/actions/workflows/test.yml/badge.svg)](https://github.com/sunchang0124/dp_cgans/actions/workflows/test.yml) [![Publish package](https://github.com/sunchang0124/dp_cgans/actions/workflows/publish.yml/badge.svg)](https://github.com/sunchang0124/dp_cgans/actions/workflows/publish.yml)
 
@@ -26,6 +26,8 @@ You will need Python >=3.8+ and <3.10
 ```shell
 pip install dp-cgans
 ```
+
+## 🪄 Usage
 
 ### ⌨️ Use as a command-line interface
 
@@ -126,8 +128,10 @@ model.sample(100)
 
 ## 🧑‍💻 Development setup
 
-<details><summary>You will need to <a href="https://python-poetry.org/docs">install Poetry</a></summary><br/>
-Be careful as poetry sometime uses a weird python version by default, you can check for the environment used by poetry for this folder by running:
+<details>
+<summary>You will need to <a href="https://python-poetry.org/docs">install Poetry</a></summary><br/>
+
+Be careful as poetry sometime uses a weird python version by default, you can check for the environment used by poetry for the current folder by running:
 
 ```bash
 poetry env list
@@ -147,6 +151,7 @@ Clone the repository:
 
 ```bash
 git clone https://github.com/sunchang0124/dp_cgans
+cd dp_cgans
 ```
 
 Install the dependencies:
@@ -197,7 +202,7 @@ Publishing a new release is automatically done by a GitHub Action workflow when 
 poetry publish
 ```
 
-## 🏷️ New release process
+## 📦️ New release process
 
 The deployment of new releases is done automatically by a GitHub Action workflow when a new release is created on GitHub. To release a new version:
 
