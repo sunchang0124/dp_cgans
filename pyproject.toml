@@ -1,30 +1,31 @@
 [tool.poetry]
 name = "dp-cgans"
-version = "0.0.2"
-description = ""
-authors = ["John Franey <johnfraney@gmail.com>"]
-maintainers = ["John Franey <johnfraney@gmail.com>"]
+version = "0.0.3"
+description = "A library to generate synthetic tabular or RDF data using Conditional Generative Adversary Networks (GANs) combined with Differential Privacy techniques."
+# description = "This package is extended from SDV (https://github.com/sdv-dev/SDV), CTGAN (https://github.com/sdv-dev/CTGAN), and Differential Privacy in GANs (https://github.com/civisanalytics/dpwgan). The author modified the conditional matrix and cost functions to emphasize on the relations between variables. The main changes are in ctgan/synthesizers/ctgan.py ../data_sampler.py ../data_transformer.py"
+authors = ["Chang Sun <sunchang0124@gmail.com>", "Leopold Cudilla <leopoldcudilla@gmail.com>", "Vincent Emonet <vincent.emonet@gmail.com>"]
 readme = "README.md"
 license = "MIT"
+homepage = "https://github.com/sunchang0124/dp_cgans"
+repository = "https://github.com/sunchang0124/dp_cgans"
+keywords = [ "CGAN", "synthetic data", "DP", "Differential Privacy", "GAN" ]
 include = [
     "LICENSE",
 ]
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-homepage = "https://github.com/sunchang0124/dp_cgans"
-repository = "https://github.com/sunchang0124/dp_cgans"
-keywords = ["CGANS", "synthetic data"]
 
 
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/sunchang0124/dp_cgans/issues"
+[tool.poetry.scripts]
+dp-cgans = "dp_cgans.__main__:cli"
 
 
 [tool.poetry.dependencies]
-python = ">=3.7, <3.10"
+python = ">=3.8,<3.10"
 wheel = "*"
 numpy = "*"
 pandas = "*"
@@ -43,6 +44,7 @@ rdflib = "^6.1.1"
 Cython = "^0.29.30"
 Owlready2 = "^0.38"
 owl2vec-star = {git = "https://github.com/cudillal/OWL2Vec-Star.git"}
+typer = "*"
 
 
 [tool.poetry.dev-dependencies]
@@ -55,8 +57,10 @@ pytest = "^5.4.1"
 pytest-cov = "^2.8.1"
 
 
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/sunchang0124/dp_cgans/issues"
+
+
 [build-system]
 requires = ["poetry_core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-# requires = ["poetry>=0.12"]
-# build-backend = "poetry.masonry.api"

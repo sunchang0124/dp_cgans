@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import numpy as np
 
+
 result_samples_path = '../persistent/model'
 if not os.path.exists(result_samples_path):
     os.makedirs(result_samples_path)
