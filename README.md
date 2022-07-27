@@ -16,39 +16,40 @@
 
 **Note**: "Standing on the shoulders of giants". This repository is inspired by the excellent work of [CTGAN](https://github.com/sdv-dev/CTGAN) from [Synthetic Data Vault (SDV)](https://github.com/sdv-dev/SDV), [Tensorflow Privacy](https://github.com/tensorflow/privacy), and [RdfPdans](https://github.com/cadmiumkitty/rdfpandas). Highly appreciate they shared the ideas and implementations, made code publicly available, well-written documentation. More related work can be found in the References below.  
 
-### Prerequisites
+
+## 📥️ Installation
 
 You will need Python >=3.8+ and <3.10
-
-### Installation
-The library is still under development, so it is still in the pypi testing environment. 
 
 ```shell
 pip install dp-cgans
 ```
 
-### Use as a command-line interface
+### ⌨️ Use as a command-line interface
 
-You can easily generated synthetic data for a file using your terminal.
+You can easily generate synthetic data for a file using your terminal after installing `dp-cgans` with pip.
 
-To run our example download the [example data](https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv):
+To quickly run our example, you can download the [example data](https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv):
 
 ```bash
 wget https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv
 ```
 
-Then run dp-cgans:
+Then run `dp-cgans`:
+
 ```bash
 dp-cgans gen example_tabular_data_UCIAdult.csv --epochs 2 --output out.csv --gen-size 100
 ```
 
-Get a full rundown of the available options with
+Get a full rundown of the available options for generating synthetic data with:
 
 ```bash
-dp-cgans --help
+dp-cgans gen --help
 ```
 
-### Use with python 
+### 🐍 Use with python 
+
+This library can also be used directly in python scripts
 
 If your input is tabular data (e.g., csv):
 
@@ -75,7 +76,7 @@ model = DP_CGAN(
 print("Start training model")
 model.fit(tabular_data)
 
-# Sample the generated synthetic data
+# Generate 100 synthetic rows
 model.sample(100)
  ```
 
@@ -121,13 +122,15 @@ model.sample(100)
 -->
 
 
-## Development installation
+## 🧑‍💻 Development setup
 
-You will need to [install Poetry](https://python-poetry.org/docs/). Be careful as the devs of poetry are not competent enough to properly set the right python version, poetry will use 3.10 by default, but you need to use 3.9
+You will need to [install Poetry](https://python-poetry.org/docs/). Be careful as poetry sometime set a weird python version, (e.g. using 3.10 by default, but you need to use 3.9), you can easily tell `poetry` to use your current version of python for this folder by running the following command:
 
 ```bash
 poetry env use $(which python)
 ```
+
+### Install
 
 Clone the repository:
 
@@ -141,35 +144,59 @@ Install the dependencies:
 poetry install
 ```
 
-Run tests:
+### Run
+
+Run the library with the CLI:
+
+```bash
+poetry run dp-cgans gen --help
+```
+
+Run the tests locally:
 
 ```bash
 poetry run pytest -s
 ```
 
-Add a dependency (e.g. `pandas` here):
+### Add a new dependency
+
+You can change the `pyproject.toml` file and run:
+
+```bash
+poetry update
+```
+
+Or you can do it directly with the CLI (e.g. for `pandas` here):
 
 ```bash
 poetry add pandas
 ```
 
-Compile:
+### Build and publish
+
+Build:
 
 ```bash
 poetry build
 ```
 
-Publish:
+Publishing a new release is automatically done by a GitHub Action workflow when a release is created on GitHub:
 
 ```bash
 poetry publish
 ```
 
-## New release process
+## 🏷️ New release process
 
-The deployment of new releases is done 
+The deployment of new releases is done automatically by a GitHub Action workflow when a new release is created on GitHub. To release a new version:
 
-### References / Further reading 
+1. Make sure the `PYPI_API_TOKEN` secret has been defined in the GitHub repository (in Settings > Secrets > Actions). You can get an API token from PyPI [here](https://pypi.org/manage/account/).
+2. Increment the `version` number in the `pyproject.toml` file in the root folder of the repository.
+3. Create a new release on GitHub, which will automatically trigger the publish workflow, and publish the new release to PyPI.
+
+You can also manually trigger the workflow from the Actions tab in your GitHub repository webpage.
+
+## 📚️ References / Further reading 
 
 There are many excellent work on generating synthetic data using GANS and other methods. We list the studies that made great conbributions for the field and inspiring for our work.
 

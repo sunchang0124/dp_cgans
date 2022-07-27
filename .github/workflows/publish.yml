@@ -33,7 +33,7 @@ jobs:
         poetry run pytest --cov=app --cov-report=term-missing tests
 
 
-  deploy:
+  publish:
     needs: test
     runs-on: ubuntu-latest
 

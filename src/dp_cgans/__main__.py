@@ -1,13 +1,23 @@
 import glob
 import sys
 
-import typer
 import pandas as pd
-from dp_cgans import DP_CGAN
 import pkg_resources
-
+import typer
+from dp_cgans import DP_CGAN
 
 cli = typer.Typer()
+
+# Variables to make the prints gorgeous:
+BOLD = '\033[1m'
+END = '\033[0m'
+GREEN = '\033[32m'
+# RED = '\033[91m'
+# YELLOW = '\033[33m'
+# CYAN = '\033[36m'
+# PURPLE = '\033[95m'
+# BLUE = '\033[34m'
+
 
 @cli.command("gen")
 def cli_gen(
@@ -25,7 +35,7 @@ def cli_gen(
         epochs=epochs, # number of training epochs
         batch_size=batch_size, # the size of each batch
         log_frequency=True,
-        verbose=False,
+        verbose=verbose,
         generator_dim=(128, 128, 128),
         discriminator_dim=(128, 128, 128),
         generator_lr=2e-4, 
@@ -34,15 +44,14 @@ def cli_gen(
         private=False,
     )
 
-    if verbose: print(f'Model instantiated, fitting')
+    if verbose: print(f'🗜️  Model instantiated, fitting...')
     model.fit(tabular_data)
 
-    if verbose: print(f'Model fit')
-    # Sample the generated synthetic data
+    if verbose: print(f'🧪 Model fitted, sampling...')
     sample = model.sample(gen_size)
 
     sample.to_csv(output)
-    if verbose: print(f'✔️ Samples generated in {output}')
+    if verbose: print(f'✅ Samples generated in {BOLD}{GREEN}{output}{END}')
 
 
 @cli.command("version")
