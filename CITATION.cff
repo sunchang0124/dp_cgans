@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Sun
+    given-names: Chang
+    affiliation: Institute of Data Science, Maastricht University
+    orcid: https://orcid.org/0000-0001-8325-8848
+    email: sunchang0124@gmail.com
+title: "DP-CGANS (Differential Privacy Conditional Generative Adversarial NetworkS) for Generating Synthetic Tabular Data"
+doi: 10.48550/arXiv.2206.13787
+repository-code: https://github.com/sunchang0124/dp_cgans
+date-released: 2022-07-27
+url: https://pypi.org/project/dp-cgans/
+# version: 0.0.3
