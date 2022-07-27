@@ -196,6 +196,9 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         else:
             device = 'cuda'
 
+        if self._verbose:
+            print(f'Using {device}')
+
         self._device = torch.device(device)
 
         self._transformer = None

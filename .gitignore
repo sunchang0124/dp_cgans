@@ -1,6 +1,7 @@
 loss_output_*.txt
 data/
 sample_*.csv
+synthetic_samples.csv
 
 # Ignore KDE Dolphin folder file
 .directory

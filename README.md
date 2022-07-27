@@ -1,7 +1,11 @@
-# Onto-CGANS (Ontology-embedding - Conditional Generative Adversarial NetworkS)
+# 👯 DP-CGANS (Differentially Private - Conditional Generative Adversarial NetworkS)
+
+[![PyPi Shield](https://img.shields.io/pypi/v/dp-cgans)](https://pypi.org/project/dp-cgans/) [![Py versions](https://img.shields.io/pypi/pyversions/dp-cgans)](https://pypi.org/project/dp-cgans/) [![Test package](https://github.com/sunchang0124/dp_cgans/actions/workflows/test.yml/badge.svg)](https://github.com/sunchang0124/dp_cgans/actions/workflows/test.yml) [![Publish package](https://github.com/sunchang0124/dp_cgans/actions/workflows/publish.yml/badge.svg)](https://github.com/sunchang0124/dp_cgans/actions/workflows/publish.yml)
+
+
 
 <!-- [![Development Status](https://img.shields.io/badge/Development%20Status-2%20--%20Pre--Alpha-yellow)](https://pypi.org/search/?c=Development+Status+%3A%3A+2+-+Pre-Alpha) -->
-[![PyPi Shield](https://img.shields.io/badge/pypi-v0.0.2-blue)](https://pypi.org/project/dp-cgans/) [![Test package](https://github.com/cudillal/dp_cgans/actions/workflows/test.yml/badge.svg)](https://github.com/cudillal/dp_cgans/actions/workflows/test.yml)
+<!-- [![PyPi Shield](https://img.shields.io/badge/pypi-v0.0.2-blue)](https://pypi.org/project/dp-cgans/) -->
 <!-- [![Tests](https://github.com/sdv-dev/SDV/workflows/Run%20Tests/badge.svg)](https://github.com/sdv-dev/SDV/actions?query=workflow%3A%22Run+Tests%22+branch%3Amaster) -->
 
 **Abstract**: This repository presents a Conditional Generative Adversary Networks (GANs) on tabular data (and RDF data) combining with Differential Privacy techniques. 
@@ -12,26 +16,52 @@
 
 **Note**: "Standing on the shoulders of giants". This repository is inspired by the excellent work of [CTGAN](https://github.com/sdv-dev/CTGAN) from [Synthetic Data Vault (SDV)](https://github.com/sdv-dev/SDV), [Tensorflow Privacy](https://github.com/tensorflow/privacy), and [RdfPdans](https://github.com/cadmiumkitty/rdfpandas). Highly appreciate they shared the ideas and implementations, made code publicly available, well-written documentation. More related work can be found in the References below.  
 
-### Prerequisites
+This package is extended from SDV (https://github.com/sdv-dev/SDV), CTGAN (https://github.com/sdv-dev/CTGAN), and Differential Privacy in GANs (https://github.com/civisanalytics/dpwgan). The author modified the conditional matrix and cost functions to emphasize on the relations between variables. The main changes are in ctgan/synthesizers/ctgan.py ../data_sampler.py ../data_transformer.py
 
-You will need Python 3.7+ and 
 
-### Installation
-The library is still under development, so it is still in the pypi testing environment. 
+## 📥️ Installation
+
+You will need Python >=3.8+ and <3.10
 
 ```shell
 pip install dp-cgans
 ```
 
-### Quick start 
+## 🪄 Usage
 
-1. if your input is tabular data (e.g., csv):
+### ⌨️ Use as a command-line interface
+
+You can easily generate synthetic data for a file using your terminal after installing `dp-cgans` with pip.
+
+To quickly run our example, you can download the [example data](https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv):
+
+```bash
+wget https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv
+```
+
+Then run `dp-cgans`:
+
+```bash
+dp-cgans gen example_tabular_data_UCIAdult.csv --epochs 2 --output out.csv --gen-size 100
+```
+
+Get a full rundown of the available options for generating synthetic data with:
+
+```bash
+dp-cgans gen --help
+```
+
+### 🐍 Use with python 
+
+This library can also be used directly in python scripts
+
+If your input is tabular data (e.g., csv):
 
  ```python
 from dp_cgans import DP_CGAN
 import pandas as pd
 
-tabular_data=pd.read_csv("../dataset/example_tabular_data_UCIAdult.csv")
+tabular_data=pd.read_csv("../resources/example_tabular_data_UCIAdult.csv")
 
 # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
 model = DP_CGAN(
@@ -50,10 +80,11 @@ model = DP_CGAN(
 print("Start training model")
 model.fit(tabular_data)
 
-# Sample the generated synthetic data
+# Generate 100 synthetic rows
 model.sample(100)
  ```
 
+<!-- 
 2. If your input data is in RDF format:
 
   ```python
@@ -61,7 +92,7 @@ from dp_cgans import DP_CGAN
 from dp_cgans import RDF_to_Tabular
 
 # Step 1. Load RDF to a plain table (dataframe)
-plain_tabular=RDF_to_Tabular(file_path="../dataset/example_rdf_data.ttl")
+plain_tabular=RDF_to_Tabular(file_path="../resources/example_rdf_data.ttl")
 
 # Step 2. Convert plain table to a structured table 
 # After step 1, RDF data will be converted a plain tabular dataset (all the nodes/entities will be presented as rows. Step 2 will structure the table by recognizing and sorting the types of the entities, replacing the URI with actual value which is attached to that URI. Users can decide how many levels they want to unfold their RDF models to tabular datasets.)
@@ -92,20 +123,35 @@ model.fit(tabular_data)
 # Sample the generated synthetic data
 model.sample(100)
   ```
+-->
 
 
-## Development installation
+## 🧑‍💻 Development setup
 
-You will need to [install Poetry](https://python-poetry.org/docs/). Be careful as the devs of poetry are not competent enough to properly set the right python version, poetry will use 3.10 by default, but you need to use 3.9
+<details>
+<summary>You will need to <a href="https://python-poetry.org/docs">install Poetry</a></summary><br/>
+
+Be careful as poetry sometime uses a weird python version by default, you can check for the environment used by poetry for the current folder by running:
+
+```bash
+poetry env list
+```
+
+You can easily tell `poetry` to use your current version of python for this folder by running the following command:
 
 ```bash
 poetry env use $(which python)
 ```
+</details>
+
+
+### Install
 
 Clone the repository:
 
 ```bash
 git clone https://github.com/sunchang0124/dp_cgans
+cd dp_cgans
 ```
 
 Install the dependencies:
@@ -114,32 +160,59 @@ Install the dependencies:
 poetry install
 ```
 
-Run tests:
+### Run
+
+Run the library with the CLI:
+
+```bash
+poetry run dp-cgans gen --help
+```
+
+Run the tests locally:
 
 ```bash
 poetry run pytest -s
 ```
 
-Add a dependency (e.g. `pandas` here):
+### Add a new dependency
+
+You can change the `pyproject.toml` file and run:
+
+```bash
+poetry update
+```
+
+Or you can do it directly with the CLI (e.g. for `pandas` here):
 
 ```bash
 poetry add pandas
 ```
 
-Compile:
+### Build and publish
+
+Build:
 
 ```bash
 poetry build
 ```
 
-Publish:
+Publishing a new release is automatically done by a GitHub Action workflow when a release is created on GitHub:
 
 ```bash
 poetry publish
 ```
 
+## 📦️ New release process
 
-### References / Further reading 
+The deployment of new releases is done automatically by a GitHub Action workflow when a new release is created on GitHub. To release a new version:
+
+1. Make sure the `PYPI_API_TOKEN` secret has been defined in the GitHub repository (in Settings > Secrets > Actions). You can get an API token from PyPI [here](https://pypi.org/manage/account/).
+2. Increment the `version` number in the `pyproject.toml` file in the root folder of the repository.
+3. Create a new release on GitHub, which will automatically trigger the publish workflow, and publish the new release to PyPI.
+
+You can also manually trigger the workflow from the Actions tab in your GitHub repository webpage.
+
+## 📚️ References / Further reading 
 
 There are many excellent work on generating synthetic data using GANS and other methods. We list the studies that made great conbributions for the field and inspiring for our work.
 
