@@ -3,12 +3,12 @@ name = "dp-cgans"
 version = "0.0.3"
 description = "A library to generate synthetic tabular or RDF data using Conditional Generative Adversary Networks (GANs) combined with Differential Privacy techniques."
 # description = "This package is extended from SDV (https://github.com/sdv-dev/SDV), CTGAN (https://github.com/sdv-dev/CTGAN), and Differential Privacy in GANs (https://github.com/civisanalytics/dpwgan). The author modified the conditional matrix and cost functions to emphasize on the relations between variables. The main changes are in ctgan/synthesizers/ctgan.py ../data_sampler.py ../data_transformer.py"
-authors = ["Chang Sun <johnfraney@gmail.com>", "Leopold", "Vincent Emonet <vincent.emonet@gmail.com>"]
+authors = ["Chang Sun <sunchang0124@gmail.com>", "Leopold Cudilla <leopoldcudilla@gmail.com>", "Vincent Emonet <vincent.emonet@gmail.com>"]
 readme = "README.md"
 license = "MIT"
 homepage = "https://github.com/sunchang0124/dp_cgans"
 repository = "https://github.com/sunchang0124/dp_cgans"
-keywords = [ "CGAN", "synthetic data" ]
+keywords = [ "CGAN", "synthetic data", "DP", "Differential Privacy", "GAN" ]
 include = [
     "LICENSE",
 ]
