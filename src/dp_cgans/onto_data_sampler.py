@@ -7,8 +7,10 @@ import pickle as pkl
 class Onto_DataSampler(object):
     """DataSampler samples the conditional vector and corresponding data for CTGAN."""
 
-    def __init__(self, data, output_info, log_frequency, embedding=None):
+    def __init__(self, data, columns, rds, output_info, log_frequency, embedding=None):
         self._data = data
+        self._columns = columns
+        self._rds = rds
         self._embedding = embedding
 
         def is_discrete_column(column_info):
@@ -118,6 +120,7 @@ class Onto_DataSampler(object):
         print(f'N_categories: {self._n_categories}')
 
         self._categories_each_column = np.array(self._categories_each_column)
+        print(f'categories each column: {self._categories_each_column}')
         second_max_category = np.partition(self._categories_each_column.flatten(), -2)[-2]
 
         self._discrete_pair_cond_st = np.zeros((int(((n_discrete_columns)*(n_discrete_columns-1))/2),int((max_category+1) * (second_max_category+1))),dtype='int32')
@@ -367,13 +370,14 @@ class Onto_DataSampler(object):
         vec[:, id] = 1
         return vec
 
-    def get_column_names_pair(self, col_id_1, col_id_2):
-        return (self._data.columns[col_id_1], self._data.columns[col_id_2])
+    def get_embeds_from_col_id(self, start_row, col_ids, batch_size):
+        print(f'rid_by_cat_cols: {self._rid_by_cat_cols}\ndiscrete_column_matrix_st: {self._discrete_column_matrix_st}\nrid_by_cat_cols_pair: {self._rid_by_cat_cols_pair[:10]}')
+        # TODO: failsafe + replace constant in shape
+        cat_embeddings = np.ndarray(shape=(batch_size, 3), dtype=object)
+        for r in range(start_row, batch_size):
+            inds = np.nonzero(col_ids[r])[0]
+            cat_embeddings[r][0] = self._embedding.get_embedding(self._rds[r])
+            cat_embeddings[r][1] = self._embedding.get_embedding(self._columns[inds[0]])
+            cat_embeddings[r][2] = self._embedding.get_embedding(self._columns[inds[1]])
 
-    def get_rd(self, row):
-        return self._data.iloc[row, 0]
-
-    def get_embeds_from_col_id(self, col_ids, batch_size):
-        cat_embeddings = np.zeros((batch_size, 3))
-        print(f'Col_ids {col_ids}')
-
+        return cat_embeddings

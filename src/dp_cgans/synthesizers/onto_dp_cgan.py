@@ -82,9 +82,9 @@ class Residual(Module):
 
 class Generator(Module):
 
-    def __init__(self, embedding_dim, generator_dim, data_dim):
+    def __init__(self, input_dim, generator_dim, data_dim):
         super(Generator, self).__init__()
-        dim = embedding_dim
+        dim = input_dim
         seq = []
         for item in list(generator_dim):
             seq += [Residual(dim, item)]
@@ -113,7 +113,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             OntologyEmbedding instance to retrieve the ontology embeddings.
         sample_epochs (int):
             Number of epochs before sampling, 0 or less to never sample. Defaults to 100.
-        embedding_dim (int):
+        noise_dim (int):
             Size of the random sample passed to the Generator. Defaults to 128.
         generator_dim (tuple or list of ints):
             Size of the output samples for each one of the Residuals. A Residual Layer
@@ -151,7 +151,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             Defaults to ``True``.
     """
 
-    def __init__(self, log_file_path, sample_epochs_path, embedding=None, embedding_dim=128,
+    def __init__(self, log_file_path, sample_epochs_path, columns, embedding=None, noise_dim=128,
                  sample_epochs=100, generator_dim=(256, 256), discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
@@ -160,7 +160,9 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         assert batch_size % 2 == 0
 
         self._embedding = embedding
-        self._embedding_dim = embedding_dim
+        self._noise_dim = noise_dim
+
+        self._columns = columns
 
         self._sample_epochs = sample_epochs
         self._sample_epochs_path = sample_epochs_path
@@ -390,6 +392,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         if self._verbose:
             print('Fitting')
 
+        print(f'Before validate discrete columnsNot transformed train data: {train_data.head(1)}')
         self._validate_discrete_columns(train_data, discrete_columns)
 
         if epochs is None:
@@ -403,26 +406,37 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         self._transformer = DataTransformer()
         self._transformer.fit(train_data, discrete_columns)
+        print(f'Size 1: {train_data.size}')
+        print(f'Size 2: {train_data.head(1).size}')
+
+        print(f'head train_data: {train_data.head(1)}')
+        rds = train_data.iloc[:, 0].values.tolist()
 
         train_data = self._transformer.transform(train_data)
 
+        print(f'Size 1: {len(train_data)}')
+        print(f'Size 2: {len(train_data[0])}')
+        print(f'Transformed train data: {train_data[0]}')
+
         self._data_sampler = Onto_DataSampler(
             train_data,
+            self._columns,
+            rds,
             self._transformer.output_info_list,
             self._log_frequency,
             self._embedding)
 
         data_dim = self._transformer.output_dimensions
 
-        print(f'Embedding dim: {self._embedding_dim}\nDim conc vec: {self._data_sampler.dim_cond_vec()}\ndata_dim: {data_dim}\nGenerator dim: {self._generator_dim}\nDiscriminator dim: {self._discriminator_dim}')
+        print(f'Embedding dim: {self._noise_dim}\nDim cond vec: {self._data_sampler.dim_cond_vec()}\nEmbedding size: {self._embedding.get_embedding_size()}\nData_dim: {data_dim}\nGenerator dim: {self._generator_dim}\nDiscriminator dim: {self._discriminator_dim}')
         self._generator = Generator(
-            self._embedding_dim + self._data_sampler.dim_cond_vec(), # number of categories in the whole dataset.
+            self._noise_dim + self._embedding.get_embedding_size(), # number of categories in the whole dataset.
             self._generator_dim,
             data_dim
         ).to(self._device)
 
         discriminator = Discriminator(
-            data_dim + self._data_sampler.dim_cond_vec(),
+            data_dim + self._embedding.get_embedding_size(),
             self._discriminator_dim,
             pac=self.pac
         ).to(self._device)
@@ -437,7 +451,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             betas=(0.5, 0.9), weight_decay=self._discriminator_decay
         )
 
-        mean = torch.zeros(self._batch_size, self._embedding_dim, device=self._device)
+        mean = torch.zeros(self._batch_size, self._noise_dim, device=self._device)
         std = mean + 1
 
         steps_per_epoch = max(len(train_data) // self._batch_size, 1)
@@ -450,31 +464,36 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         ######## ADDED ########
         for i in range(epochs):
-            for id_ in range(steps_per_epoch):
+            for step in range(steps_per_epoch):
 
                 for n in range(self._discriminator_steps):
                     fakez = torch.normal(mean=mean, std=std)
+                    print(f'Noise vec size: {fakez.size()}')
 
                     condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
 
                     c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
+                    print(f'c_pair_1: {c_pair_1}\nm_pair_1: {m_pair_1}\ncol_pair_1: {col_pair_1}\nopt_pair_1: {opt_pair_1}')
+                    print(f'c_pair_1 size: {len(c_pair_1)}\nm_pair_1 size: {len(m_pair_1)}\ncol_pair_1 size: {len(col_pair_1)}\nopt_pair_1 size: {len(opt_pair_1)}')
+                    print(f'c_pair_1 size size: {len(c_pair_1[0])}\nm_pair_1 size size: {len(m_pair_1[0])}')
 
                     if condvec_pair is None:
                         c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
                         real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1, opt_pair_1)
                     else:
                         # retrieving ontology embeddings
-                        # TODO: change generator+discriminator input dimensions
-                        embeddings = self._data_sampler.get_embeds_from_col_id(col_pair_1, self._batch_size)
-                        embeddings = torch.from_numpy(embeddings).to(self._device)
-                        c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
-                        m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
-                        fakez = torch.cat([fakez, embeddings], dim=1)
+                        # TODO: change embedding dim to take the 3 embeddings into account
+                        # embeddings = self._data_sampler.get_embeds_from_col_id(start_row=(step*self._batch_size), col_ids=m_pair_1, batch_size=self._batch_size)
+                        # embeddings = torch.from_numpy(embeddings).to(self._device)
+                        # c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
+                        # m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
+                        # fakez = torch.cat([fakez, embeddings], dim=1)
 
                         perm = np.arange(self._batch_size)
                         np.random.shuffle(perm)
 
                         real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1[perm], opt_pair_1[perm])
+                        print(f'real data first row non zero: {np.nonzero(real[0])[0]}')
                         c_pair_2 = c_pair_1[perm]
 
                     fake = self._generator(fakez) # categories (unique value count) + continuous (1+n_components)
@@ -640,7 +659,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         steps = n // self._batch_size + 1
         data = []
         for i in range(steps):
-            mean = torch.zeros(self._batch_size, self._embedding_dim)
+            mean = torch.zeros(self._batch_size, self._noise_dim)
             std = mean + 1
             fakez = torch.normal(mean=mean, std=std).to(self._device)
 

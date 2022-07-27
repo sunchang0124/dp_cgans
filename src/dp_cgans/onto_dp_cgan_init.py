@@ -29,6 +29,8 @@ class DPCGANModel(Onto_BaseTabularModel):
             table_data (pandas.DataFrame):
                 Data to be learned.
         """
+
+        print(f'Table data: {table_data.head(1)}')
         self._model = self._build_model()
 
         categoricals = []
@@ -134,7 +136,7 @@ class Onto_DP_CGAN(DPCGANModel):
             exception will be raised.
             If not given at all, it will be built using the other
             arguments or learned from the data.
-        embedding_dim (int):
+        noise_dim (int):
             Size of the random sample passed to the Generator. Defaults to 128.
         generator_dim (tuple or list of ints):
             Size of the output samples for each one of the Residuals. A Residual Layer
@@ -188,10 +190,10 @@ class Onto_DP_CGAN(DPCGANModel):
 
     _MODEL_CLASS = Onto_DPCGANSynthesizer
 
-    def __init__(self, sample_epochs_path, log_file_path, embedding=None,
+    def __init__(self, sample_epochs_path, log_file_path, columns, embedding=None,
                  sample_epochs=100, field_names=None, field_types=None, field_transformers=None,
                  anonymize_fields=None, primary_key=None, constraints=None,
-                 table_metadata=None, embedding_dim=128, generator_dim=(256, 256),
+                 table_metadata=None, noise_dim=128, generator_dim=(256, 256),
                  discriminator_dim=(256, 256), generator_lr=2e-4, generator_decay=1e-6,
                  discriminator_lr=2e-4, discriminator_decay=1e-6, batch_size=500,
                  discriminator_steps=1, log_frequency=True, verbose=False,
@@ -212,7 +214,8 @@ class Onto_DP_CGAN(DPCGANModel):
 
         self._model_kwargs = {
             'embedding': embedding,
-            'embedding_dim': embedding_dim,
+            'columns': columns,
+            'noise_dim': noise_dim,
             'sample_epochs': sample_epochs,
             'sample_epochs_path': sample_epochs_path,
             'log_file_path': log_file_path,

@@ -1,18 +1,17 @@
 from dp_cgans import DP_CGAN, Onto_DP_CGAN, OntologyEmbedding
 import pandas as pd
 import os
+import numpy as np
 
 result_samples_path = '../persistent/model'
 if not os.path.exists(result_samples_path):
     os.makedirs(result_samples_path)
 
-tabular_data = pd.read_csv("./dataset/example_tabular_data_UCIAdult.csv", header=0)
-print(tabular_data.shape)
-print(tabular_data.nunique())
+tabular_data = pd.read_csv("../persistent/data/syn_data/syn_patients_data_seen.csv", header=0)
+columns = tabular_data.columns.values.tolist()
+del columns[0]  # deleting patient_id column name
 
-# tabular_data = pd.read_csv("../persistent/data/syn_data/small_syn_patients_data_seen.csv", header=0)
-
-onto_embedding = OntologyEmbedding(embedding_path='../persistent/data/ontology/embeddings/output',
+onto_embedding = OntologyEmbedding(embedding_path='../persistent/data/ontology/embeddings/hp_hoom_ordo_10/ontology.embeddings',
                                    embedding_size=100,
                                    hp_dict_fn='../persistent/data/ontology/HPO.dict',
                                    rd_dict_fn='../persistent/data/ontology/ORDO.dict')
@@ -20,15 +19,16 @@ onto_embedding = OntologyEmbedding(embedding_path='../persistent/data/ontology/e
 # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
 model = Onto_DP_CGAN(
     embedding=onto_embedding,
+    columns=columns,
     sample_epochs=100,
     sample_epochs_path=result_samples_path,
     log_file_path=result_samples_path,
-    # primary_key='patient_id',
+    primary_key='patient_id',
     epochs=2, # number of training epochs
     batch_size=1000, # the size of each batch
     log_frequency=True,
     verbose=True,
-    embedding_dim=100,
+    noise_dim=100,
     generator_dim=(128, 128, 128),
     discriminator_dim=(128, 128, 128),
     generator_lr=2e-4,

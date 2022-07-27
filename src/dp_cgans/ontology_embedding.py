@@ -11,18 +11,19 @@ class OntologyEmbedding():
 
         with open(hp_dict_fn) as f:
             for line in f:
-                (entity, iri) = line.split(';')
+                (entity, iri) = line.strip().split(';')
                 self._iri_dict[entity] = iri
 
         with open(rd_dict_fn) as f:
             for line in f:
-                (entity, iri) = line.split(';')
+                (entity, iri) = line.strip().split(';')
                 self._iri_dict[entity] = iri
 
     def get_iri(self, entity):
         return self._iri_dict.get(entity, None)
 
     def get_embedding(self, entity):
+        print(f'Retrieving embedding for: {entity}')
         iri = self.get_iri(entity)
         if iri is not None:
             return self._embedding_model.wv[iri]
