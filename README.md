@@ -165,6 +165,9 @@ Publish:
 poetry publish
 ```
 
+## New release process
+
+The deployment of new releases is done 
 
 ### References / Further reading 
 
