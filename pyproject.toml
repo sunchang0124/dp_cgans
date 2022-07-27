@@ -1,11 +1,14 @@
 [tool.poetry]
 name = "dp-cgans"
 version = "0.0.3"
-description = ""
-authors = ["Chang Sun <johnfraney@gmail.com>", "Leopold", "Vincent"]
-maintainers = ["Chang Sun <johnfraney@gmail.com>"]
+description = "A library to generate synthetic tabular or RDF data using Conditional Generative Adversary Networks (GANs) combined with Differential Privacy techniques."
+# description = "This package is extended from SDV (https://github.com/sdv-dev/SDV), CTGAN (https://github.com/sdv-dev/CTGAN), and Differential Privacy in GANs (https://github.com/civisanalytics/dpwgan). The author modified the conditional matrix and cost functions to emphasize on the relations between variables. The main changes are in ctgan/synthesizers/ctgan.py ../data_sampler.py ../data_transformer.py"
+authors = ["Chang Sun <johnfraney@gmail.com>", "Leopold", "Vincent Emonet <vincent.emonet@gmail.com>"]
 readme = "README.md"
 license = "MIT"
+homepage = "https://github.com/sunchang0124/dp_cgans"
+repository = "https://github.com/sunchang0124/dp_cgans"
+keywords = [ "CGAN", "synthetic data" ]
 include = [
     "LICENSE",
 ]
@@ -15,13 +18,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-homepage = "https://github.com/sunchang0124/dp_cgans"
-repository = "https://github.com/sunchang0124/dp_cgans"
-keywords = ["CGANS", "synthetic data"]
 
 
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/sunchang0124/dp_cgans/issues"
+[tool.poetry.scripts]
+dp-cgans = "dp_cgans.__main__:cli"
 
 
 [tool.poetry.dependencies]
@@ -51,11 +51,10 @@ pytest = "^5.4.1"
 pytest-cov = "^2.8.1"
 
 
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/sunchang0124/dp_cgans/issues"
+
+
 [build-system]
 requires = ["poetry_core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-# requires = ["poetry>=0.12"]
-# build-backend = "poetry.masonry.api"
-
-[tool.poetry.scripts]
-dp-cgans = "dp_cgans.__main__:cli"
