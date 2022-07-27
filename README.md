@@ -126,11 +126,15 @@ model.sample(100)
 
 ## 🧑‍💻 Development setup
 
-You will need to [install Poetry](https://python-poetry.org/docs/). Be careful as poetry sometime set a weird python version, (e.g. using 3.10 by default, but you need to use 3.9), you can easily tell `poetry` to use your current version of python for this folder by running the following command:
+<details><summary>You will need to [install Poetry](https://python-poetry.org/docs/)</summary>
+
+Be careful as poetry sometime set a weird python version, (e.g. using 3.10 by default, but you need to use 3.9), you can easily tell `poetry` to use your current version of python for this folder by running the following command:
 
 ```bash
 poetry env use $(which python)
 ```
+</details>
+
 
 ### Install
 
