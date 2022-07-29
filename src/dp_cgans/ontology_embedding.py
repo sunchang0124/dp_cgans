@@ -23,7 +23,7 @@ class OntologyEmbedding():
         return self._iri_dict.get(entity, None)
 
     def get_embedding(self, entity):
-        print(f'Retrieving embedding for: {entity}')
+        # print(f'Retrieving embedding for: {entity}')
         iri = self.get_iri(entity)
         if iri is not None:
             return self._embedding_model.wv[iri]

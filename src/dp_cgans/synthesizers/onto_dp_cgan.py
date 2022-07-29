@@ -395,7 +395,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         if self._verbose:
             print('Fitting')
 
-        print(f'Before validate discrete columnsNot transformed train data: {train_data.head(1)}')
         self._validate_discrete_columns(train_data, discrete_columns)
 
         if epochs is None:
@@ -412,14 +411,14 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         print(f'Size 1: {train_data.size}')
         print(f'Size 2: {train_data.head(1).size}')
 
-        print(f'head train_data: {train_data.head(1)}')
+        print(f'Train_data first row: {train_data.head(1)}')
         rds = train_data.iloc[:, 0].values.tolist()
 
         train_data = self._transformer.transform(train_data)
 
         print(f'Size 1: {len(train_data)}')
         print(f'Size 2: {len(train_data[0])}')
-        print(f'Transformed train data: {train_data[0]}')
+        print(f'Transformed train data (first row): {train_data[0]}')
 
         self._data_sampler = Onto_DataSampler(
             train_data,
@@ -476,8 +475,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
 
                     c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
-                    print(f'c_pair_1: {c_pair_1}\nm_pair_1: {m_pair_1}\ncol_pair_1: {col_pair_1}\nopt_pair_1: {opt_pair_1}')
-                    print(f'c_pair_1 size: {len(c_pair_1)}\nm_pair_1 size: {len(m_pair_1)}\ncol_pair_1 size: {len(col_pair_1)}\nopt_pair_1 size: {len(opt_pair_1)}')
+                    print(f'c_pair_1: {c_pair_1[0]}\nm_pair_1: {m_pair_1[0]}\ncol_pair_1: {col_pair_1[0]}\nopt_pair_1: {opt_pair_1[0]}')
                     print(f'c_pair_1 size size: {len(c_pair_1[0])}\nm_pair_1 size size: {len(m_pair_1[0])}')
 
                     if condvec_pair is None:
@@ -486,11 +484,11 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     else:
                         # retrieving ontology embeddings
                         # TODO: change embedding dim to take the 3 embeddings into account
-                        # embeddings = self._data_sampler.get_embeds_from_col_id(start_row=(step*self._batch_size), col_ids=m_pair_1, batch_size=self._batch_size)
-                        # embeddings = torch.from_numpy(embeddings).to(self._device)
-                        # c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
-                        # m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
-                        # fakez = torch.cat([fakez, embeddings], dim=1)
+                        embeddings = self._data_sampler.get_embeds_from_col_id(col_ids=m_pair_1, cat_ids=c_pair_1, batch_size=self._batch_size)
+                        embeddings = torch.from_numpy(embeddings).to(self._device)
+                        c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
+                        m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
+                        fakez = torch.cat([fakez, embeddings], dim=1)
 
                         perm = np.arange(self._batch_size)
                         np.random.shuffle(perm)
@@ -691,7 +689,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         self._device = device
         if self._generator is not None:
             self._generator.to(self._device)
-
 
     def xai_discriminator(self, data_samples):
 

@@ -23,31 +23,11 @@ class Onto_DataSampler(object):
         self._discrete_column_matrix_st = np.zeros(
             n_discrete_columns, dtype="int32")
 
-        # Store the row id for each category in each discrete column.
-        # For example _rid_by_cat_cols[a][b] is a list of all rows with the
-        # a-th discrete column equal value b.
-        self._rid_by_cat_cols = []
-
-        # Compute _rid_by_cat_cols
-        st = 0
-        for column_info in output_info:
-            if is_discrete_column(column_info):
-                span_info = column_info[0]
-                ed = st + span_info.dim
-
-                rid_by_cat = []
-                for j in range(span_info.dim):
-                    rid_by_cat.append(np.nonzero(data[:, st + j])[0])
-                self._rid_by_cat_cols.append(rid_by_cat)
-
-                st = ed
-            else:
-                st += sum([span_info.dim for span_info in column_info])
-        assert st == data.shape[1]
-
         self._rid_by_cat_cols_pair = []
-        # Compute _rid_by_cat_cols_pair
         st_primary = 0
+        # STARTS AT 1 TO EXCLUDE RD COLUMN
+        # On verra plus tard, c'est pour le vrai sampling
+        print(data)
         for index_primary in range(0, len(output_info)):
             column_info_primary = output_info[index_primary]
 
@@ -83,17 +63,8 @@ class Onto_DataSampler(object):
 
         assert st_primary == data.shape[1]
 
-                
-                
-
-
-        # Prepare an interval matrix for efficiently sample conditional vector
-        # max_category = max(
-        #     [column_info[0].dim for column_info in output_info
-        #      if is_discrete_column(column_info)], default=0)
-       
-        ### Modified by Chang###        
-        self.get_position=[]
+        ### Modified by Chang ###
+        self.get_position = []
         position_cnt = 0
         self._categories_each_column = []
         for column_info in output_info:
@@ -110,9 +81,9 @@ class Onto_DataSampler(object):
         self._n_discrete_columns = n_discrete_columns
         # self._n_categories = sum(
         #     [column_info[0].dim for column_info in output_info
-        #      if is_discrete_column(column_info)]) 
+        #      if is_discrete_column(column_info)])
 
-        ### Modified by Chang###        
+        ### Modified by Chang ###
 
         self.get_position = np.array(self.get_position)
         self._n_categories = sum(self._categories_each_column)
@@ -120,7 +91,6 @@ class Onto_DataSampler(object):
         print(f'N_categories: {self._n_categories}')
 
         self._categories_each_column = np.array(self._categories_each_column)
-        print(f'categories each column: {self._categories_each_column}')
         second_max_category = np.partition(self._categories_each_column.flatten(), -2)[-2]
 
         self._discrete_pair_cond_st = np.zeros((int(((n_discrete_columns)*(n_discrete_columns-1))/2),int((max_category+1) * (second_max_category+1))),dtype='int32')
@@ -154,39 +124,44 @@ class Onto_DataSampler(object):
 
 
         ### Modified by Chang###
-        st_primary = 0
+        # start first data column in cat cols
+        # starting after the 1st col (at 12) which will be there in all cases
+        st_primary = output_info[0][0].dim
 
         current_id_pair = 0
         current_cond_st_pair = 0
         self.pair_id_dict = {}
 
-        for index_primary in range(0, len(output_info)): # [2, 3, 3, 2] (2,3),(2,3),(2,2),,,(3,3),(3,2),,,,,(3,2)
+        # STARTS AT 1 TO EXCLUDE RD COLUMN
+        for index_primary in range(1, len(output_info)): # [2, 3, 3, 2] (2,3),(2,3),(2,2),,,(3,3),(3,2),,,,,(3,2)
             column_info_primary = output_info[index_primary]
             if is_discrete_column(column_info_primary):
-                
+
                 span_info_primary = column_info_primary[0]
                 ed_primary = st_primary + span_info_primary.dim
                 st_secondary = ed_primary
 
                 for index_secondary in range(index_primary+1, len(output_info)):
                     column_info_secondary = output_info[index_secondary]
-                    
+
                     if is_discrete_column(column_info_secondary):
                         span_info_secondary = column_info_secondary[0]
                         ed_secondary = st_secondary + span_info_secondary.dim
-                        
-                        ### calculate pair frequency ### 
-                        combine_pair_data = np.append(data[:,st_primary:ed_primary], data[:,st_secondary:ed_secondary],axis=1)
-                        unique_pair, counts_pair = np.unique(reduce(lambda a,b: 2*a+b, combine_pair_data.transpose()), return_counts=True) # counts_pair --> category_freq  
 
-                        pair_prob = counts_pair / np.sum(counts_pair) ###???? Order in the array??
+                        ### calculate pair frequency ### 
+                        combine_pair_data = np.concatenate((data[:, 0:output_info[0][0].dim], data[:, st_primary:ed_primary], data[:, st_secondary:ed_secondary]), axis=1)
+                        # change for lambda a, b, c?
+                        unique_pair, counts_pair = np.unique(reduce(lambda a, b: 2*a+b, combine_pair_data.transpose()), return_counts=True) # counts_pair --> category_freq
+
+                        pair_prob = counts_pair / np.sum(counts_pair)
                         self._discrete_column_pair_prob[current_id_pair, :len(unique_pair)] = (pair_prob)
 
                         self._discrete_pair_cond_st[current_id_pair, 0:len(unique_pair)] = unique_pair ## current_cond_st_pair
                         self._discrete_pair_n_category[current_id_pair] = len(unique_pair)
                         current_cond_st_pair += (span_info_primary.dim * span_info_secondary.dim)
 
-                        self.pair_id_dict[(index_primary,index_secondary)] = current_id_pair
+                        # Added 0 to always include the RD column
+                        self.pair_id_dict[(0, index_primary, index_secondary)] = current_id_pair
                         current_id_pair += 1
 
                         st_secondary = ed_secondary
@@ -197,50 +172,13 @@ class Onto_DataSampler(object):
 
             else:
                 st_primary += sum([span_info.dim for span_info in column_info_primary])
-            
-
-
-
-    # def _random_choice_prob_index(self, discrete_column_id):
-    #     probs = self._discrete_column_category_prob[discrete_column_id]
-    #     r = np.expand_dims(np.random.rand(probs.shape[0]), axis=1)
-    #     return (probs.cumsum(axis=1) > r).argmax(axis=1)
+        print(f'self._discrete_column_pair_prob: {self._discrete_column_pair_prob[0]} self._discrete_pair_cond_st: {self._discrete_pair_cond_st[0]} self._discrete_pair_n_category: {self._discrete_pair_n_category[0]}')
 
     ### modified by Chang ###
     def _random_choice_prob_pairs(self, converted_paired_discrete_column_id):
         pair_probs = self._discrete_column_pair_prob[converted_paired_discrete_column_id]
         r = np.expand_dims(np.random.rand(pair_probs.shape[0]), axis=1)
         return (pair_probs.cumsum(axis=1) > r).argmax(axis=1)
-
-
-    # def sample_condvec(self, batch):
-    #     """Generate the conditional vector for training.
-
-    #     Returns:
-    #         cond (batch x #categories):
-    #             The conditional vector.
-    #         mask (batch x #discrete columns):
-    #             A one-hot vector indicating the selected discrete column.
-    #         discrete column id (batch):
-    #             Integer representation of mask.
-    #         category_id_in_col (batch):
-    #             Selected category in the selected discrete column.
-    #     """
-    #     if self._n_discrete_columns == 0:
-    #         return None
-
-    #     discrete_column_id = np.random.choice(
-    #         np.arange(self._n_discrete_columns), batch)
-
-    #     cond = np.zeros((batch, self._n_categories), dtype='float32')
-    #     mask = np.zeros((batch, self._n_discrete_columns), dtype='float32')
-    #     mask[np.arange(batch), discrete_column_id] = 1
-    #     category_id_in_col = self._random_choice_prob_index(discrete_column_id) # category_id_in_col: (0, max_num_cateogies), --> [0,2,1,0,2,1...]
-    #     category_id = (self._discrete_column_cond_st[discrete_column_id] # _discrete_column_cond_st : adding up categories from each discrete var 
-    #                    + category_id_in_col)
-    #     cond[np.arange(batch), category_id] = 1
-
-    #     return cond, mask, discrete_column_id, category_id_in_col
 
     ### modified by Chang ###
     def sample_condvec_pair(self, batch):
@@ -259,13 +197,13 @@ class Onto_DataSampler(object):
         if self._n_discrete_columns == 0:
             return None
 
-
         # discrete_column_id = np.random.choice(
         #     np.arange(self._n_discrete_columns), batch)
 
         paired_discrete_column_id = []
         for iter_gen in range(0, batch):
-            paired_discrete_column_id.append(np.random.choice(np.arange(self._n_discrete_columns), 2, replace=False)) 
+            # arange from 1 to exclude the RD column
+            paired_discrete_column_id.append(np.concatenate(([0], np.random.choice(np.arange(1, self._n_discrete_columns), 2, replace=False))))
 
         # convert paired_discrete_column_id to current_id_pair type
         converted_paired_discrete_column_id = []
@@ -277,26 +215,30 @@ class Onto_DataSampler(object):
         #     for mul_item in range(basic_item+1, len(self._categories_each_column)):
         #         full_possible_combi += self._categories_each_column[basic_item] * self._categories_each_column[mul_item]
 
-        cond_pair = np.zeros((batch, self._n_categories), dtype='float32') ## 
-        mask_pair = np.zeros((batch, self._n_discrete_columns), dtype='int32') ## 
+        cond_pair = np.zeros((batch, self._n_categories), dtype='float32')
+        mask_pair = np.zeros((batch, self._n_discrete_columns), dtype='int32')
         mask_pair[np.arange(batch), np.array(paired_discrete_column_id)[:,0]] = 1
         mask_pair[np.arange(batch), np.array(paired_discrete_column_id)[:,1]] = 1
+        mask_pair[np.arange(batch), np.array(paired_discrete_column_id)[:,2]] = 1
 
-        pair_id_in_col = self._random_choice_prob_pairs(converted_paired_discrete_column_id) # category_id_in_col: (0, max_num_cateogies), --> [0,2,1,0,2,1...]
+        pair_id_in_col = self._random_choice_prob_pairs(converted_paired_discrete_column_id) # category_id_in_col: (0, max_num_categories), --> [0,2,1,0,2,1...]
         pair_id_decimal = (self._discrete_pair_cond_st[np.expand_dims(converted_paired_discrete_column_id,axis=1),
                                                                     np.expand_dims(pair_id_in_col,axis=1)]).astype(int).flatten()
-
+        print(f'pair_id_in_col: {pair_id_in_col} len: {len(pair_id_in_col)}')
         pair_primary_secondary_cat = []
         pair_primary_secondary_col = []
         for itr_decimal in range(0, len(pair_id_decimal)):
 
             pair_categories = self._categories_each_column * mask_pair[itr_decimal]
+            # the rd column never has 1 anywhere
             pair_id_binary = list(np.binary_repr(pair_id_decimal[itr_decimal], width=(pair_categories.sum())))
 
-            first_cat = pair_categories[pair_categories!=0][0]
-            pair_primary_position = np.argmax(pair_id_binary[:first_cat])
-            pair_secondary_position = np.argmax(pair_id_binary[first_cat:])
-            pair_primary_secondary_cat.append([pair_primary_position, pair_secondary_position])
+            if itr_decimal == 0: print(f'pair_id_binary: {pair_id_binary}')
+            cats = pair_categories[pair_categories!=0]
+            pair_primary_position = np.argmax(pair_id_binary[:cats[0]])
+            pair_secondary_position = np.argmax(pair_id_binary[cats[0]:cats[0]+cats[1]])
+            pair_tertiary_position = np.argmax(pair_id_binary[cats[0]+cats[1]:])
+            pair_primary_secondary_cat.append([pair_primary_position, pair_secondary_position, pair_tertiary_position])
 
             pair_primary_secondary_col.append(self._discrete_column_cond_st[np.where(mask_pair[itr_decimal]==1)[0]])
 
@@ -304,6 +246,7 @@ class Onto_DataSampler(object):
 
         cond_pair[np.arange(batch), pair_id_all_positions[:,0]] = 1
         cond_pair[np.arange(batch), pair_id_all_positions[:,1]] = 1
+        cond_pair[np.arange(batch), pair_id_all_positions[:,2]] = 1
 
         return cond_pair, mask_pair, np.array(converted_paired_discrete_column_id), pair_id_in_col
         ### converted_paired_discrete_column_id [0,6]
@@ -326,23 +269,6 @@ class Onto_DataSampler(object):
 
         return cond
 
-    # def sample_data_pair(self, n, col, opt):
-    #     """Sample data from original training data satisfying the sampled conditional vector.
-
-    #     Returns:
-    #         n rows of matrix data.
-    #     """
-    #     if col is None:
-    #         idx = np.random.randint(len(self._data), size=n)
-    #         return self._data[idx]
-
-    #     idx = []
-    #     for c, o in zip(col, opt):
-    #         print(c,o)
-    #         idx.append(np.random.choice(self._rid_by_cat_cols[c][o]))
-
-    #     return self._data[idx]
-    
     def sample_data_pair(self, n, col, opt):
         """Sample data from original training data satisfying the sampled conditional vector.
 
@@ -370,14 +296,16 @@ class Onto_DataSampler(object):
         vec[:, id] = 1
         return vec
 
-    def get_embeds_from_col_id(self, start_row, col_ids, batch_size):
-        print(f'rid_by_cat_cols: {self._rid_by_cat_cols}\ndiscrete_column_matrix_st: {self._discrete_column_matrix_st}\nrid_by_cat_cols_pair: {self._rid_by_cat_cols_pair[:10]}')
+    def get_embeds_from_col_id(self, col_ids, cat_ids, batch_size):
         # TODO: failsafe + replace constant in shape
-        cat_embeddings = np.ndarray(shape=(batch_size, 3), dtype=object)
-        for r in range(start_row, batch_size):
-            inds = np.nonzero(col_ids[r])[0]
-            cat_embeddings[r][0] = self._embedding.get_embedding(self._rds[r])
-            cat_embeddings[r][1] = self._embedding.get_embedding(self._columns[inds[0]])
-            cat_embeddings[r][2] = self._embedding.get_embedding(self._columns[inds[1]])
+        # need for a flat array to return, to convert to a tensor
+        cat_embeddings = np.ndarray(shape=(batch_size, 3), dtype='float32')
+        for r in range(batch_size):
+            col_inds = np.nonzero(col_ids[r])[0]
+            cat_inds = np.nonzero(cat_ids[r])[0]
+            print(f'cat ids: {cat_ids[r]}')
+            cat_embeddings[r][0] = self._embedding.get_embedding(self._rds[cat_inds[0]])
+            cat_embeddings[r][1] = self._embedding.get_embedding(self._columns[col_inds[0]])
+            cat_embeddings[r][2] = self._embedding.get_embedding(self._columns[col_inds[1]])
 
         return cat_embeddings
