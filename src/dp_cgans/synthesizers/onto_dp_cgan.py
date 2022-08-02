@@ -342,7 +342,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     cnt_primary += 1
                     st_primary = ed_primary
                     st_sprimary_c = ed_primary_c
-        # print(len(loss))
         return loss.sum() / len(loss)
 
     def _validate_discrete_columns(self, train_data, discrete_columns):
@@ -408,17 +407,17 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         self._transformer = DataTransformer()
         self._transformer.fit(train_data, discrete_columns)
-        print(f'Size 1: {train_data.size}')
-        print(f'Size 2: {train_data.head(1).size}')
+        print(f'train_data.size: {train_data.size}')
+        print(f'train_data.head(1).size: {train_data.head(1).size}')
 
-        print(f'Train_data first row: {train_data.head(1)}')
+        print(f'train_data.head(1): {train_data.head(1)}')
         rds = train_data.iloc[:, 0].values.tolist()
 
         train_data = self._transformer.transform(train_data)
 
-        print(f'Size 1: {len(train_data)}')
-        print(f'Size 2: {len(train_data[0])}')
-        print(f'Transformed train data (first row): {train_data[0]}')
+        print(f'len(train_data): {len(train_data)}')
+        print(f'len(train_data[0]): {len(train_data[0])}')
+        print(f'Transformed train_data[0]: {train_data[0]}')
 
         self._data_sampler = Onto_DataSampler(
             train_data,
@@ -470,13 +469,10 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
                 for n in range(self._discriminator_steps):
                     fakez = torch.normal(mean=mean, std=std)
-                    print(f'Noise vec size: {fakez.size()}')
 
                     condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
 
                     c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
-                    print(f'c_pair_1: {c_pair_1[0]}\nm_pair_1: {m_pair_1[0]}\ncol_pair_1: {col_pair_1[0]}\nopt_pair_1: {opt_pair_1[0]}')
-                    print(f'c_pair_1 size size: {len(c_pair_1[0])}\nm_pair_1 size size: {len(m_pair_1[0])}')
 
                     if condvec_pair is None:
                         c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
@@ -493,8 +489,8 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                         perm = np.arange(self._batch_size)
                         np.random.shuffle(perm)
 
+                        # out of range here
                         real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1[perm], opt_pair_1[perm])
-                        print(f'real data first row non zero: {np.nonzero(real[0])[0]}')
                         c_pair_2 = c_pair_1[perm]
 
                     fake = self._generator(fakez) # categories (unique value count) + continuous (1+n_components)
@@ -509,7 +505,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                         real_cat = real
                         fake_cat = fake
 
-                    # print(real_cat[0])
                     y_fake = discriminator(fake_cat)
                     y_real = discriminator(real_cat)
 
