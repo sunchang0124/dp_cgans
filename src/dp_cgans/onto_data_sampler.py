@@ -175,7 +175,6 @@ class Onto_DataSampler(object):
         # discrete_column_id = np.random.choice(
         #     np.arange(self._n_discrete_columns), batch)
 
-        # ici peut-être??
         paired_discrete_column_id = []
         for iter_gen in range(0, batch):
             # arange from 1 to exclude the RD column
@@ -221,7 +220,6 @@ class Onto_DataSampler(object):
         cond_pair[np.arange(batch), pair_id_all_positions[:,1]] = 1
         cond_pair[np.arange(batch), pair_id_all_positions[:,2]] = 1
 
-        # check les 2 trucs return là
         return cond_pair, mask_pair, np.array(converted_paired_discrete_column_id), pair_id_in_col
         ### converted_paired_discrete_column_id [0,6]
         ### pair_id_in_col, 
@@ -232,16 +230,26 @@ class Onto_DataSampler(object):
             return None
 
         cond = np.zeros((batch, self._n_categories), dtype='float32')
+        mask = np.zeros((batch, self._n_discrete_columns), dtype='float32')
 
         for i in range(batch):
             row_idx = np.random.randint(0, len(self._data))
-            col_idx = np.random.randint(0, self._n_discrete_columns)
-            matrix_st = self._discrete_column_matrix_st[col_idx]
-            matrix_ed = matrix_st + self._discrete_column_n_category[col_idx]
+            col_idx = np.random.choice(np.arange(1, self._n_discrete_columns), size=2)
+            for ind in col_idx:
+                mask[i, ind] = 1
+                # _discrete_column_matrix_st is a matrix full of zeros
+                matrix_st = self._discrete_column_matrix_st[ind]
+                matrix_ed = matrix_st + self._discrete_column_n_category[ind]
+                pick = np.argmax(self._data[row_idx, matrix_st:matrix_ed])
+                cond[i, pick + self._discrete_column_cond_st[ind]] = 1
+            # adding the RD column
+            mask[i, 0] = 1
+            matrix_st = self._discrete_column_matrix_st[ind]
+            matrix_ed = matrix_st + self._discrete_column_n_category[0]
             pick = np.argmax(self._data[row_idx, matrix_st:matrix_ed])
-            cond[i, pick + self._discrete_column_cond_st[col_idx]] = 1
+            cond[i, pick + self._discrete_column_cond_st[0]] = 1
 
-        return cond
+        return cond, mask
 
     def sample_data_pair(self, n, col, opt):
         """Sample data from original training data satisfying the sampled conditional vector.
@@ -271,7 +279,6 @@ class Onto_DataSampler(object):
         return vec
 
     def get_embeds_from_col_id(self, col_ids, cat_ids, batch_size):
-        # TODO: failsafe + replace constant in shape
         embed_size = self._embedding.embed_size
         cat_embeddings = np.ndarray(shape=(batch_size, 3*embed_size), dtype='float32')
         for r in range(batch_size):
