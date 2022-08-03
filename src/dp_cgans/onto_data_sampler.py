@@ -272,13 +272,13 @@ class Onto_DataSampler(object):
 
     def get_embeds_from_col_id(self, col_ids, cat_ids, batch_size):
         # TODO: failsafe + replace constant in shape
-        embed_size = self._embedding.get_embedding_size()
+        embed_size = self._embedding.embed_size
         cat_embeddings = np.ndarray(shape=(batch_size, 3*embed_size), dtype='float32')
         for r in range(batch_size):
             col_inds = np.nonzero(col_ids[r])[0]
             cat_inds = np.nonzero(cat_ids[r])[0]
-            cat_embeddings[0, 0:embed_size] = self._embedding.get_embedding(self._rds[cat_inds[0]])
-            cat_embeddings[1, embed_size:embed_size*2] = self._embedding.get_embedding(self._columns[col_inds[0]])
-            cat_embeddings[2, embed_size*2:embed_size*3] = self._embedding.get_embedding(self._columns[col_inds[1]])
+            cat_embeddings[r, 0:embed_size] = self._embedding.get_embedding(self._rds[cat_inds[0]])
+            cat_embeddings[r, embed_size:embed_size*2] = self._embedding.get_embedding(self._columns[col_inds[0]])
+            cat_embeddings[r, embed_size*2:embed_size*3] = self._embedding.get_embedding(self._columns[col_inds[1]])
 
         return cat_embeddings
