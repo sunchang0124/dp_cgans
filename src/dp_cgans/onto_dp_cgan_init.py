@@ -30,7 +30,6 @@ class DPCGANModel(Onto_BaseTabularModel):
                 Data to be learned.
         """
 
-        print(f'Table data: {table_data.head(1)}')
         self._model = self._build_model()
 
         categoricals = []
@@ -55,8 +54,6 @@ class DPCGANModel(Onto_BaseTabularModel):
                     kind = 'O'
                 if kind in ['O', 'b']:
                     categoricals.append(field)
-
-        # print(table_data[categoricals])
 
         self._model.fit(
             table_data,

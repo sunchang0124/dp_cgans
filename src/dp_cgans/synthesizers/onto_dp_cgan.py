@@ -407,17 +407,10 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         self._transformer = DataTransformer()
         self._transformer.fit(train_data, discrete_columns)
-        print(f'train_data.size: {train_data.size}')
-        print(f'train_data.head(1).size: {train_data.head(1).size}')
 
-        print(f'train_data.head(1): {train_data.head(1)}')
         rds = train_data.iloc[:, 0].values.tolist()
 
         train_data = self._transformer.transform(train_data)
-
-        print(f'len(train_data): {len(train_data)}')
-        print(f'len(train_data[0]): {len(train_data[0])}')
-        print(f'Transformed train_data[0]: {train_data[0]}')
 
         self._data_sampler = Onto_DataSampler(
             train_data,
@@ -429,7 +422,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         data_dim = self._transformer.output_dimensions
 
-        print(f'Embedding dim: {self._noise_dim}\nDim cond vec: {self._data_sampler.dim_cond_vec()}\nEmbedding size: {self._embedding.embed_size}\nData_dim: {data_dim}\nGenerator dim: {self._generator_dim}\nDiscriminator dim: {self._discriminator_dim}')
         self._generator = Generator(
             self._noise_dim + self._embedding.embed_size*self._embedding.embeds_number, # number of categories in the whole dataset.
             self._generator_dim,
@@ -457,10 +449,11 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         steps_per_epoch = max(len(train_data) // self._batch_size, 1)
 
+        now = datetime.now()
+        date_and_time = now.strftime("%Y_%m_%d_%H_%M_%S")
         if self._verbose:
-            now = datetime.now()
-            date_and_time = now.strftime("%Y_%m_%d_%H_%M_%S")
             f = open(os.path.join(self._log_file_path, f'{date_and_time}_loss_output_{epochs}.txt'), 'w')
+            f.write('epoch,time,generator_loss,discriminator_loss\n')
             f.close()
 
         ######## ADDED ########
@@ -598,14 +591,14 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             if self._verbose:
                 ######## ADDED ########
                 now = datetime.now()
-                current_time = now.strftime("%Y-%m-%d %H:%M:%S")
+                current_time = now.strftime("%Y_%m_%d_%H_%M_%S")
 
                 # Calculate the current privacy cost using the accountant
                 # https://github.com/BorealisAI/private-data-generation/blob/master/models/dp_wgan.py
                 # https://github.com/tensorflow/privacy/tree/master/tutorials/walkthrough
 
                 with open(os.path.join(self._log_file_path, f'{date_and_time}_loss_output_{epochs}.txt'), 'a') as log_file:
-                    log_file.write(f'{current_time}   Epoch {i+1}   Loss G: {loss_g.detach().cpu():.4f}   Loss D: {loss_d.detach().cpu():.4f}\n')
+                    log_file.write(f'{i+1},{current_time},{loss_g.detach().cpu():.4f},{loss_d.detach().cpu():.4f}\n')
 
                     if self.private:
                         orders = [1 + x / 10. for x in range(1, 100)]
@@ -628,7 +621,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
             ######## ADDED ########
             if self._sample_epochs > 0 and i % self._sample_epochs == 0:
-                self.sample(len(train_data)).to_csv(os.path.join(self._sample_epochs_path, f'sample_epoch_{str(i)}.csv'))
+                self.sample(len(train_data)).to_csv(os.path.join(self._sample_epochs_path, f'{date_and_time}_sample_epoch_{str(i)}.csv'))
 
     def sample(self, n, condition_column=None, condition_value=None):
         """Sample data similar to the training data.
@@ -638,7 +631,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         Args:
             n (int):
                 Number of rows to sample.
-            condition_column (string):cd
+            condition_column (string):
                 Name of a discrete column.
             condition_value (string):
                 Name of the category in the condition_column which we wish to increase the
