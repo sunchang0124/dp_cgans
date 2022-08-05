@@ -30,6 +30,7 @@ onto_embedding = OntologyEmbedding(embedding_path='../persistent/data/ontology/e
                                    rd_dict_fn='../persistent/data/ontology/ORDO.dict')
 
 # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
+epochs = 4000
 model = Onto_DP_CGAN(
     embedding=onto_embedding,
     columns=columns,
@@ -37,20 +38,20 @@ model = Onto_DP_CGAN(
     sample_epochs_path=result_samples_path,
     log_file_path=result_samples_path,
     # primary_key='patient_id',
-    epochs=10000, # number of training epochs
+    epochs=epochs, # number of training epochs
     batch_size=500, # the size of each batch
     log_frequency=True,
     verbose=True,
     noise_dim=100,
     generator_dim=(128, 128, 128),
     discriminator_dim=(128, 128, 128),
-    generator_lr=1e-4,
-    discriminator_lr=1e-4,
-    discriminator_steps=5,
+    generator_lr=2e-4,
+    discriminator_lr=2e-4,
+    discriminator_steps=1,
     private=False,
 )
 
-print("Start model training")
+print(f'Start model training, for {epochs} epochs')
 model.fit(tabular_data)
 
 now = datetime.now()
