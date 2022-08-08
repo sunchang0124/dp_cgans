@@ -620,7 +620,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
 
             ######## ADDED ########
-            if self._sample_epochs > 0 and i % self._sample_epochs == 0:
+            if self._sample_epochs > 0 and i > 0 and i % self._sample_epochs == 0:
                 self.sample(len(train_data)).to_csv(os.path.join(self._sample_epochs_path, f'{date_and_time}_sample_epoch_{str(i)}.csv'))
 
     def sample(self, n, condition_column=None, condition_value=None):

@@ -27,10 +27,11 @@ columns = tabular_data.columns.values.tolist()
 onto_embedding = OntologyEmbedding(embedding_path='../persistent/data/ontology/embeddings/hp_hoom_ordo_10/ontology.embeddings',
                                    embedding_size=100,
                                    hp_dict_fn='../persistent/data/ontology/HPO.dict',
-                                   rd_dict_fn='../persistent/data/ontology/ORDO.dict')
+                                   rd_dict_fn='../persistent/data/ontology/ORDO.dict',
+                                   embeddings_number=1)
 
 # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
-epochs = 4000
+epochs = 10000
 model = Onto_DP_CGAN(
     embedding=onto_embedding,
     columns=columns,
