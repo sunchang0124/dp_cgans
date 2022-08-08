@@ -4,7 +4,7 @@ from owl2vec_star import owl2vec_star
 
 nltk.download('punkt')
 
-output_folder = '../persistent/data/ontology/embeddings/hpObo_hoom_ordo'
+output_folder = '../persistent/data/ontology/embeddings/hpObo_hoom_ordo_25'
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
