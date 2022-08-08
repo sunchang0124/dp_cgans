@@ -294,10 +294,11 @@ class DPCGANSynthesizer(BaseSynthesizer):
                                 real_data_labels = torch.cat([data[:,st_primary:ed_primary], data[:,st_secondary:ed_secondary]], dim=1)
                                 class_counts = real_data_labels.sum(axis=0)
 
-                                pos_weights = torch.ones_like(class_counts)
-                                neg_counts = [len(data)-pos_count for pos_count in class_counts]
-                                for cdx, (pos_count, neg_count) in enumerate(zip(class_counts,  neg_counts)):
-                                    pos_weights[cdx] = neg_count / (pos_count + 1e-5)
+                                
+                                # pos_weights = torch.ones_like(class_counts)
+                                # neg_counts = [len(data)-pos_count for pos_count in class_counts]
+                                # for cdx, (pos_count, neg_count) in enumerate(zip(class_counts,  neg_counts)):
+                                #     pos_weights[cdx] = neg_count / (pos_count + 1e-5)
                                 
                                 # torch_pos_weights = torch.as_tensor(pos_weights, dtype=torch.float)
                                 # print(pos_weights)
@@ -319,7 +320,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
 
                     cnt_primary += 1
                     st_primary = ed_primary
-                    st_sprimary_c = ed_primary_c
+                    st_primary_c = ed_primary_c
         # print(len(loss))
         return loss.sum() / len(loss)
 
