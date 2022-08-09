@@ -288,8 +288,9 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         st_primary = 0
         st_primary_c = 0
         cnt = 0
-        cnt_primary=0
-        for index_primary in range(0, len(output_info_all_columns)):
+        rd_ind = 0
+        cnt_primary = 1
+        for index_primary in range(1, len(output_info_all_columns)):
             column_info_primary = output_info_all_columns[index_primary]
             for span_info_primary in column_info_primary:
                 if len(column_info_primary) != 1 or span_info_primary.activation_fn != "softmax":
@@ -300,9 +301,10 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     ed_primary = st_primary + span_info_primary.dim
                     ed_primary_c = st_primary_c + span_info_primary.dim
 
-                    cnt_secondary=cnt_primary+1
+                    cnt_secondary = cnt_primary+1
                     st_secondary = ed_primary
                     st_secondary_c = ed_primary_c
+                    # print(f'cnt_primary: {cnt_primary} len: {len(m_pair[:,cnt_primary])} m_pair[:,cnt_primary]: {m_pair[:,cnt_primary]}')
                     for index_secondary in range(index_primary+1, len(output_info_all_columns)):
                         column_info_secondary = output_info_all_columns[index_secondary]
                         for span_info_secondary in column_info_secondary:
@@ -314,7 +316,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                                 ed_secondary = st_secondary + span_info_secondary.dim
                                 ed_secondary_c = st_secondary_c + span_info_secondary.dim
 
-                                real_data_labels = torch.cat([data[:,st_primary:ed_primary], data[:,st_secondary:ed_secondary]], dim=1)
+                                real_data_labels = torch.cat([data[:, 0:output_info_all_columns[0][0].dim], data[:,st_primary:ed_primary], data[:,st_secondary:ed_secondary]], dim=1)
                                 class_counts = real_data_labels.detach().cpu().numpy().sum(axis=0)
 
                                 pos_weights = np.ones_like(class_counts)
@@ -324,15 +326,18 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
                                 torch_pos_weights = torch.as_tensor(pos_weights, dtype=torch.float).to(self._device)
 
+                                print(f'len: {len(c_pair[0])}')
                                 criterion = BCEWithLogitsLoss(reduction='none', pos_weight=torch_pos_weights)
                                 calculate_loss = criterion(
-                                    torch.cat([data[:,st_primary:ed_primary], data[:,st_secondary:ed_secondary]], dim=1),
-                                    torch.cat([c_pair[:,st_primary_c:ed_primary_c], c_pair[:,st_secondary_c:ed_secondary_c]],dim=1)
+                                    torch.cat([data[:, 0:output_info_all_columns[0][0].dim], data[:,st_primary:ed_primary], data[:,st_secondary:ed_secondary]], dim=1),
+                                    torch.cat([c_pair[:, 0:output_info_all_columns[0][0].dim], c_pair[:,st_primary_c:ed_primary_c], c_pair[:,st_secondary_c:ed_secondary_c]],dim=1)
                                 )
 
                                 calculate_loss = calculate_loss.detach().cpu().numpy()
-                                loss[cnt*len(data):(cnt+1)*len(data),cnt_primary] = np.sum(calculate_loss[:,:span_info_primary.dim],axis=1) * m_pair[:,cnt_primary]
-                                loss[cnt*len(data):(cnt+1)*len(data),cnt_secondary] = np.sum(calculate_loss[:,span_info_primary.dim:],axis=1) * m_pair[:,cnt_secondary]
+
+                                loss[cnt*len(data):(cnt+1)*len(data), rd_ind] = np.sum(calculate_loss[:,:span_info_primary.dim],axis=1) * m_pair[:,rd_ind]
+                                loss[cnt*len(data):(cnt+1)*len(data), cnt_primary] = np.sum(calculate_loss[:,:span_info_primary.dim],axis=1) * m_pair[:,cnt_primary]
+                                loss[cnt*len(data):(cnt+1)*len(data), cnt_secondary] = np.sum(calculate_loss[:,span_info_primary.dim:],axis=1) * m_pair[:,cnt_secondary]
 
                                 st_secondary = ed_secondary
                                 st_secondary_c = ed_secondary_c
@@ -341,7 +346,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
                     cnt_primary += 1
                     st_primary = ed_primary
-                    st_sprimary_c = ed_primary_c
+                    st_primary_c = ed_primary_c
         return loss.sum() / len(loss)
 
     def _validate_discrete_columns(self, train_data, discrete_columns):
