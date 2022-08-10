@@ -8,7 +8,7 @@
 <!-- [![PyPi Shield](https://img.shields.io/badge/pypi-v0.0.2-blue)](https://pypi.org/project/dp-cgans/) -->
 <!-- [![Tests](https://github.com/sdv-dev/SDV/workflows/Run%20Tests/badge.svg)](https://github.com/sdv-dev/SDV/actions?query=workflow%3A%22Run+Tests%22+branch%3Amaster) -->
 
-**Abstract**: This repository presents a Conditional Generative Adversary Networks (GANs) on tabular data (and RDF data) combining with Differential Privacy techniques. 
+**Abstract**: This repository presents a Conditional Generative Adversary Networks (GANs) on tabular data (and RDF data) combining with Differential Privacy techniques. Our pre-print publication: [Improving Correlation Capture in Generating Imbalanced Data using Differentially Private Conditional GANs](https://arxiv.org/abs/2206.13787).
 
 **Author**: Chang Sun, Institute of Data Science, Maastricht University
 **Start date**: Nov-2021
