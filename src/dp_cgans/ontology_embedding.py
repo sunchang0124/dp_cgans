@@ -4,8 +4,6 @@ import numpy as np
 
 class OntologyEmbedding():
 
-    NUMBER_OF_EMBEDDINGS = 3
-
     def __init__(self, embedding_path, embedding_size, hp_dict_fn, rd_dict_fn, embeddings_number=3):
         self._embed_model = KeyedVectors.load(embedding_path)
         self.embed_size = embedding_size
@@ -26,7 +24,6 @@ class OntologyEmbedding():
         return self._iri_dict.get(entity, None)
 
     def get_embedding(self, entity):
-        # print(f'Retrieving embedding for: {entity}')
         iri = self.get_iri(entity)
         if iri is not None:
             return self._embed_model.wv[iri]

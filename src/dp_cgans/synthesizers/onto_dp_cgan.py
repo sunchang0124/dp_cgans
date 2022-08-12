@@ -304,7 +304,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     cnt_secondary = cnt_primary+1
                     st_secondary = ed_primary
                     st_secondary_c = ed_primary_c
-                    # print(f'cnt_primary: {cnt_primary} len: {len(m_pair[:,cnt_primary])} m_pair[:,cnt_primary]: {m_pair[:,cnt_primary]}')
                     for index_secondary in range(index_primary+1, len(output_info_all_columns)):
                         column_info_secondary = output_info_all_columns[index_secondary]
                         for span_info_secondary in column_info_secondary:
@@ -326,7 +325,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
                                 torch_pos_weights = torch.as_tensor(pos_weights, dtype=torch.float).to(self._device)
 
-                                print(f'len: {len(c_pair[0])}')
                                 criterion = BCEWithLogitsLoss(reduction='none', pos_weight=torch_pos_weights)
                                 calculate_loss = criterion(
                                     torch.cat([data[:, 0:output_info_all_columns[0][0].dim], data[:,st_primary:ed_primary], data[:,st_secondary:ed_secondary]], dim=1),
@@ -413,7 +411,9 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         self._transformer = DataTransformer()
         self._transformer.fit(train_data, discrete_columns)
 
-        rds = train_data.iloc[:, 0].values.tolist()
+        rds = train_data.iloc[:, 0].values
+        _, idx = np.unique(rds, return_index=True)
+        rds = rds[np.sort(idx)]
 
         train_data = self._transformer.transform(train_data)
 

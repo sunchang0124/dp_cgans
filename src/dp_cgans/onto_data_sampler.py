@@ -285,7 +285,7 @@ class Onto_DataSampler(object):
             col_inds = np.nonzero(col_ids[r])[0]
             cat_inds = np.nonzero(cat_ids[r])[0]
             cat_embeddings[r, 0:embed_size] = self._embedding.get_embedding(self._rds[cat_inds[0]])
-            cat_embeddings[r, embed_size:embed_size*2] = self._embedding.get_embedding(self._columns[col_inds[0]])
-            cat_embeddings[r, embed_size*2:embed_size*3] = self._embedding.get_embedding(self._columns[col_inds[1]])
+            cat_embeddings[r, embed_size:embed_size*2] = self._embedding.get_embedding(self._columns[col_inds[1]])
+            cat_embeddings[r, embed_size*2:embed_size*3] = self._embedding.get_embedding(self._columns[col_inds[2]])
 
         return cat_embeddings
