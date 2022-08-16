@@ -51,7 +51,12 @@ def __perform_ontology_embedding(config, document):
 
     logging.info('Time for learning the language model: %s seconds' % (time.time() - start_time))
 
+    return model_
+
 
 config_file = './embedding.cfg'
 document_file = '../persistent/data/ontology/embeddings/hpObo_hoom_ordo_25_10s/document_sentences.txt'
 gensim_model = extract_owl2vec_model(config_file, document_file)
+
+# Gensim format
+gensim_model.save(os.path.join('../persistent/data/ontology/embeddings/hpObo_hoom_ordo_25_10s/', 'ontology.embeddings'))
