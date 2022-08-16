@@ -333,8 +333,8 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
                                 calculate_loss = calculate_loss.detach().cpu().numpy()
 
-                                loss[cnt*len(data):(cnt+1)*len(data), rd_ind] = np.sum(calculate_loss[:,:span_info_primary.dim],axis=1) * m_pair[:,rd_ind]
-                                loss[cnt*len(data):(cnt+1)*len(data), cnt_primary] = np.sum(calculate_loss[:,:span_info_primary.dim],axis=1) * m_pair[:,cnt_primary]
+                                loss[cnt*len(data):(cnt+1)*len(data), rd_ind] = np.sum(calculate_loss[:,:output_info_all_columns[0][0].dim],axis=1) * m_pair[:,rd_ind]
+                                loss[cnt*len(data):(cnt+1)*len(data), cnt_primary] = np.sum(calculate_loss[:,output_info_all_columns[0][0].dim:span_info_primary.dim],axis=1) * m_pair[:,cnt_primary]
                                 loss[cnt*len(data):(cnt+1)*len(data), cnt_secondary] = np.sum(calculate_loss[:,span_info_primary.dim:],axis=1) * m_pair[:,cnt_secondary]
 
                                 st_secondary = ed_secondary
