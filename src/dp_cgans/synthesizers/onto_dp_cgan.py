@@ -484,7 +484,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                         np.random.shuffle(perm)
                         m_pair_2 = m_pair_1[perm]
                         c_pair_2 = c_pair_1[perm]
-
                         fakez = torch.cat([fakez, fake_embeddings], dim=1)
 
                         real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1[perm], opt_pair_1[perm])
@@ -497,6 +496,8 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     real = torch.from_numpy(real.astype('float32')).to(self._device)
 
                     if col_pair_1 is not None:
+                        fake_cat = fakeact
+                        real_cat = real
                         fake_cat = torch.cat([fakeact, fake_embeddings], dim=1)
                         real_cat = torch.cat([real, real_embeddings], dim=1)
                     else:
@@ -540,15 +541,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                 fakez = torch.normal(mean=mean, std=std)
                 condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
 
-                # if condvec is None:
-                #     c1, m1, col, opt = None, None, None, None
-                # else:
-                #     c1, m1, col, opt = condvec
-
-                #     c1 = torch.from_numpy(c1).to(self._device)
-                #     m1 = torch.from_numpy(m1).to(self._device)
-                #     fakez = torch.cat([fakez, c1], dim=1)
-
                 if condvec_pair is None:
                     c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
                 else:
@@ -564,18 +556,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
                 fake = self._generator(fakez)
                 fakeact = self._apply_activate(fake)
-
-                # if c1 is not None:
-                #     y_fake = discriminator(torch.cat([fakeact, c1], dim=1))
-                # else:
-                #     y_fake = discriminator(fakeact)
-
-                # if condvec is None:
-                #     cross_entropy = 0
-                # else:
-                #     cross_entropy = self._cond_loss(fake, c1, m1)
-
-                # loss_g = -torch.mean(y_fake) + cross_entropy# + rules_penalty
 
                 if c_pair_1 is not None:
                     y_fake = discriminator(torch.cat([fakeact, fake_embeddings], dim=1))
