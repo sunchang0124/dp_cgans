@@ -162,6 +162,8 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         self._embedding = embedding
         self._noise_dim = noise_dim
 
+        # Removing RD column for ZSL
+        # self._columns = columns[:1]
         self._columns = columns
 
         self._sample_epochs = sample_epochs
@@ -253,32 +255,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     assert 0
 
         return torch.cat(data_t, dim=1)
-
-    # def _cond_loss(self, data, c, m):
-    #     """Compute the cross entropy loss on the fixed discrete column."""
-    #     loss = []
-    #     st = 0
-    #     st_c = 0
-    #     for column_info in self._transformer.output_info_list:
-    #         for span_info in column_info:
-    #             if len(column_info) != 1 or span_info.activation_fn != "softmax":
-    #                 # not discrete column
-    #                 st += span_info.dim
-    #             else:
-    #                 ed = st + span_info.dim
-    #                 ed_c = st_c + span_info.dim
-    #                 tmp = functional.cross_entropy(
-    #                     data[:, st:ed],
-    #                     torch.argmax(c[:, st_c:ed_c], dim=1),
-    #                     reduction='none'
-    #                 )
-    #                 loss.append(tmp)
-    #                 st = ed
-    #                 st_c = ed_c
-
-    #     loss = torch.stack(loss, dim=1)
-    #     # print((loss * m).sum() / data.size()[0])
-    #     return (loss * m).sum() / data.size()[0]
 
     def _cond_loss_pair(self, data, c_pair, m_pair):
 
@@ -408,26 +384,30 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                 DeprecationWarning
             )
 
-        self._transformer = DataTransformer()
-        self._transformer.fit(train_data, discrete_columns)
+        full_transformer = DataTransformer()
+        full_transformer.fit(train_data, discrete_columns)
+        train_data_full = full_transformer.transform(train_data)
 
         rds = train_data.iloc[:, 0].values
         _, idx = np.unique(rds, return_index=True)
         rds = rds[np.sort(idx)]
 
-        train_data = self._transformer.transform(train_data)
-
         self._data_sampler = Onto_DataSampler(
-            train_data,
+            train_data_full,
             self._columns,
             rds,
-            self._transformer.output_info_list,
+            full_transformer.output_info_list,
             self._log_frequency,
             self._embedding)
 
+        # removing the RDs column for ZSL
+        train_data.drop(columns=train_data.columns[0], axis=1, inplace=True)
+
+        self._transformer = DataTransformer()
+        self._transformer.fit(train_data, discrete_columns)
+        train_data = self._transformer.transform(train_data)
+
         data_dim = self._transformer.output_dimensions
-        # removing the RD categories for ZSL
-        # data_dim = self._transformer.output_dimensions - self._transformer.output_info_list[0][0].dim
 
         self._generator = Generator(
             self._noise_dim + self._embedding.embed_size*self._embedding.embeds_number, # number of categories in the whole dataset.
@@ -608,7 +588,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             if self._sample_epochs > 0 and i > 0 and i % self._sample_epochs == 0:
                 self.sample(len(train_data)).to_csv(os.path.join(self._sample_epochs_path, f'{date_and_time}_sample_epoch_{str(i)}.csv'))
 
-    def sample(self, n, condition_column=None, condition_value=None):
+    def sample(self, n, unseen_rds=[]):
         """Sample data similar to the training data.
 
         Choosing a condition_column and condition_value will increase the probability of the
@@ -624,35 +604,28 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         Returns:
             numpy.ndarray or pandas.DataFrame
         """
-        if condition_column is not None and condition_value is not None:
-            condition_info = self._transformer.convert_column_name_value_to_id(
-                condition_column, condition_value)
-            global_condition_vec = self._data_sampler.generate_cond_from_condition_column_info(
-                condition_info, self._batch_size)
-        else:
-            global_condition_vec = None
 
         steps = n // self._batch_size + 1
         data = []
+        sampled_rds = []
         for i in range(steps):
             mean = torch.zeros(self._batch_size, self._noise_dim)
             std = mean + 1
             fakez = torch.normal(mean=mean, std=std).to(self._device)
 
-            if global_condition_vec is not None:
-                condvec = global_condition_vec.copy()
-            else:
-                condvec = self._data_sampler.sample_original_condvec(self._batch_size)
+            condvec = self._data_sampler.sample_original_condvec(self._batch_size)
 
             if condvec is None:
                 pass
             else:
                 c1, m1 = condvec
                 # retrieving ontology embeddings
-                fake_embeddings = self._data_sampler.get_embeds_from_col_id(col_ids=m1, cat_ids=c1, batch_size=self._batch_size)
+                rds = self._data_sampler.get_rds(cat_ids=c1, batch_size=self._batch_size)
+                fake_embeddings = self._data_sampler.get_rd_embeds(rds)
                 fake_embeddings = torch.from_numpy(fake_embeddings).to(self._device)
 
                 fakez = torch.cat([fakez, fake_embeddings], dim=1)
+                sampled_rds += rds
 
             fake = self._generator(fakez)
             fakeact = self._apply_activate(fake)
@@ -661,7 +634,9 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         data = np.concatenate(data, axis=0)
         data = data[:n]
 
-        return self._transformer.inverse_transform(data)
+        sampled_data = self._transformer.inverse_transform(data)
+        sampled_data.insert(loc=0, column='rare_disease', value=sampled_rds[:n])
+        return sampled_data
 
     def set_device(self, device):
         self._device = device

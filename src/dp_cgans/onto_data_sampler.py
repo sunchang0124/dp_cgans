@@ -11,9 +11,8 @@ class Onto_DataSampler(object):
         self._data = data
         self._columns = columns
         self._rds = rds
+        self._rd_col_dim = output_info[0][0].dim
         self._embedding = embedding
-        # added for ZSL
-        self._rd_column_dim = output_info[0][0].dim
 
         def is_discrete_column(column_info):
             return (len(column_info) == 1
@@ -85,15 +84,14 @@ class Onto_DataSampler(object):
         ### Modified by Chang###
         # start first data column in cat cols
         # starting after the 1st col (at 12) which will be there in all cases
-        st_primary = output_info[0][0].dim
+        st_primary = self._rd_col_dim
 
         current_id_pair = 0
         current_cond_st_pair = 0
         self.pair_id_dict = {}
 
         self._rid_by_cat_cols_pair = []
-        # starting after the 1st col (at 12) which will be there in all cases
-        st_primary = output_info[0][0].dim
+
         # STARTS AT 1 TO EXCLUDE RD COLUMN
         for index_primary in range(1, len(output_info)):
             column_info_primary = output_info[index_primary]
@@ -113,7 +111,7 @@ class Onto_DataSampler(object):
 
                         rid_by_cat_pair = []
                         # concatenate the category columns of each triple of data columns
-                        combine_pair_data = np.concatenate((data[:, 0:output_info[0][0].dim], data[:, st_primary:ed_primary], data[:, st_secondary:ed_secondary]), axis=1)
+                        combine_pair_data = np.concatenate((data[:, 0:self._rd_col_dim], data[:, st_primary:ed_primary], data[:, st_secondary:ed_secondary]), axis=1)
                         # convert each triple to a single number
                         combine_pair_data_decimal = reduce(lambda a, b: 2*a+b, combine_pair_data.transpose())
                         # counts the frequency of each triple
@@ -215,8 +213,6 @@ class Onto_DataSampler(object):
         cond_pair[np.arange(batch), pair_id_all_positions[:,2]] = 1
 
         return cond_pair, mask_pair, np.array(converted_paired_discrete_column_id), pair_id_in_col
-        ### converted_paired_discrete_column_id [0,6]
-        ### pair_id_in_col, 
 
     def sample_original_condvec(self, batch):
         """Generate the conditional vector for generation use original frequency."""
@@ -259,9 +255,8 @@ class Onto_DataSampler(object):
         for c, o in zip(col, opt):
             idx.append(np.random.choice(self._rid_by_cat_cols_pair[c][o]))
 
-        return self._data[idx]
-        # removing RD column for ZSL
-        # return self._data[idx][:, self._rd_column_dim:]
+        # Slice to exclude RD column for ZSL
+        return self._data[idx][:, self._rd_col_dim:]
 
     def dim_cond_vec(self):
         # return 3
@@ -285,5 +280,21 @@ class Onto_DataSampler(object):
                 cat_embeddings[r, embed_size:embed_size*2] = self._embedding.get_embedding(self._columns[col_inds[1]])
             if self._embedding.embeds_number > 2:
                 cat_embeddings[r, embed_size*2:embed_size*3] = self._embedding.get_embedding(self._columns[col_inds[2]])
+
+        return cat_embeddings
+
+    def get_rds(self, cat_ids, batch_size):
+        rds = []
+        for r in range(batch_size):
+            cat_inds = np.nonzero(cat_ids[r])[0]
+            rds.append(self._rds[cat_inds[0]])
+
+        return rds
+
+    def get_rd_embeds(self, rds):
+        embed_size = self._embedding.embed_size
+        cat_embeddings = np.ndarray(shape=(len(rds), embed_size), dtype='float32')
+        for r, rd in enumerate(rds):
+            cat_embeddings[r, :] = self._embedding.get_embedding(rd)
 
         return cat_embeddings
