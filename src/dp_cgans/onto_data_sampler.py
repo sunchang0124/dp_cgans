@@ -12,6 +12,8 @@ class Onto_DataSampler(object):
         self._columns = columns
         self._rds = rds
         self._embedding = embedding
+        # added for ZSL
+        self._rd_column_dim = output_info[0][0].dim
 
         def is_discrete_column(column_info):
             return (len(column_info) == 1
@@ -39,9 +41,6 @@ class Onto_DataSampler(object):
             n_discrete_columns, dtype='int32')
         self._discrete_column_category_prob = np.zeros((n_discrete_columns, max_category))
         self._n_discrete_columns = n_discrete_columns
-        # self._n_categories = sum(
-        #     [column_info[0].dim for column_info in output_info
-        #      if is_discrete_column(column_info)])
 
         ### Modified by Chang ###
 
@@ -185,11 +184,6 @@ class Onto_DataSampler(object):
         for each in paired_discrete_column_id:
             converted_paired_discrete_column_id.append(self.pair_id_dict[tuple(self.get_position[np.sort(each)])])
 
-        # full_possible_combi = 0
-        # for basic_item in range(0, len(self._categories_each_column)-1):
-        #     for mul_item in range(basic_item+1, len(self._categories_each_column)):
-        #         full_possible_combi += self._categories_each_column[basic_item] * self._categories_each_column[mul_item]
-
         cond_pair = np.zeros((batch, self._n_categories), dtype='float32')
         mask_pair = np.zeros((batch, self._n_discrete_columns), dtype='int32')
         mask_pair[np.arange(batch), np.array(paired_discrete_column_id)[:,0]] = 1
@@ -234,7 +228,7 @@ class Onto_DataSampler(object):
 
         for i in range(batch):
             row_idx = np.random.randint(0, len(self._data))
-            col_idx = np.random.choice(np.arange(1, self._n_discrete_columns), size=2)
+            col_idx = np.random.choice(np.arange(1, self._n_discrete_columns), replace=False, size=2)
             for ind in col_idx:
                 mask[i, ind] = 1
                 # _discrete_column_matrix_st is a matrix full of zeros
@@ -266,6 +260,8 @@ class Onto_DataSampler(object):
             idx.append(np.random.choice(self._rid_by_cat_cols_pair[c][o]))
 
         return self._data[idx]
+        # removing RD column for ZSL
+        # return self._data[idx][:, self._rd_column_dim:]
 
     def dim_cond_vec(self):
         # return 3

@@ -426,6 +426,8 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             self._embedding)
 
         data_dim = self._transformer.output_dimensions
+        # removing the RD categories for ZSL
+        # data_dim = self._transformer.output_dimensions - self._transformer.output_info_list[0][0].dim
 
         self._generator = Generator(
             self._noise_dim + self._embedding.embed_size*self._embedding.embeds_number, # number of categories in the whole dataset.
@@ -496,8 +498,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     real = torch.from_numpy(real.astype('float32')).to(self._device)
 
                     if col_pair_1 is not None:
-                        fake_cat = fakeact
-                        real_cat = real
                         fake_cat = torch.cat([fakeact, fake_embeddings], dim=1)
                         real_cat = torch.cat([real, real_embeddings], dim=1)
                     else:
