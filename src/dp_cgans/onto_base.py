@@ -189,7 +189,7 @@ class Onto_BaseTabularModel:
 
         return sampled
 
-    def _sample_rows(self, num_rows, conditions=None, transformed_conditions=None,
+    def _sample_rows(self, num_rows, unseen_rds=[], sort=True, conditions=None, transformed_conditions=None,
                      float_rtol=0.1, previous_rows=None):
         """Sample rows with the given conditions.
 
@@ -207,6 +207,11 @@ class Onto_BaseTabularModel:
         Args:
             num_rows (int):
                 Number of rows to sample.
+            unseen_rds (list-like):
+                List-like object containing names of unseen RDs to sample.
+                Does not sample from seen_rds if there is at least one item in it.
+            sort (bool):
+                Whether to sort the resulting dataframe on RDs (alphabetically). Defaults to True.
             conditions (dict):
                 The dictionary of conditioning values in the original format.
             transformed_conditions (dict):
@@ -225,7 +230,7 @@ class Onto_BaseTabularModel:
         """
         if self._metadata.get_dtypes(ids=False):
             if conditions is None:
-                sampled = self._sample(num_rows)
+                sampled = self._sample(num_rows, unseen_rds, sort)
             else:
                 try:
                     sampled = self._sample(num_rows, transformed_conditions)
@@ -251,7 +256,7 @@ class Onto_BaseTabularModel:
             sampled = self._metadata.reverse_transform(sampled)
             return sampled, num_rows
 
-    def _sample_batch(self, num_rows=None, max_retries=100, max_rows_multiplier=10,
+    def _sample_batch(self, num_rows=None, unseen_rds=[], sort=True, max_retries=100, max_rows_multiplier=10,
                       conditions=None, transformed_conditions=None, float_rtol=0.01):
         """Sample a batch of rows with the given conditions.
 
@@ -276,6 +281,11 @@ class Onto_BaseTabularModel:
                 Number of rows to sample. If not given the model
                 will generate as many rows as there were in the
                 data passed to the ``fit`` method.
+            unseen_rds (list-like):
+                List-like object containing names of unseen RDs to sample.
+                Does not sample from seen_rds if there is at least one item in it.
+            sort (bool):
+                Whether to sort the resulting dataframe on RDs (alphabetically). Defaults to True.
             max_retries (int):
                 Number of times to retry sampling discarded rows.
                 Defaults to 100.
@@ -297,7 +307,7 @@ class Onto_BaseTabularModel:
                 Sampled data.
         """
         sampled, num_valid = self._sample_rows(
-            num_rows, conditions, transformed_conditions, float_rtol)
+            num_rows, unseen_rds, sort, conditions, transformed_conditions, float_rtol)
 
         counter = 0
         total_sampled = num_rows
@@ -313,7 +323,7 @@ class Onto_BaseTabularModel:
 
             LOGGER.info('%s valid rows remaining. Resampling %s rows', remaining, num_to_sample)
             sampled, num_valid = self._sample_rows(
-                num_to_sample, conditions, transformed_conditions, float_rtol, sampled
+                num_to_sample, unseen_rds, sort, conditions, transformed_conditions, float_rtol, sampled
             )
 
             counter += 1
@@ -389,7 +399,7 @@ class Onto_BaseTabularModel:
 
         return sampled_rows
 
-    def sample(self, num_rows=None, max_retries=100, max_rows_multiplier=10,
+    def sample(self, num_rows=None, unseen_rds=[], sort=True, max_retries=100, max_rows_multiplier=10,
                conditions=None, float_rtol=0.01, graceful_reject_sampling=False):
         """Sample rows from this table.
 
@@ -398,6 +408,11 @@ class Onto_BaseTabularModel:
                 Number of rows to sample. If not given the model
                 will generate as many rows as there were in the
                 data passed to the ``fit`` method.
+            unseen_rds (list-like):
+                List-like object containing names of unseen RDs to sample.
+                Does not sample from seen_rds if there is at least one item in it.
+            sort (bool):
+                Whether to sort the resulting dataframe on RDs (alphabetically). Defaults to True.
             max_retries (int):
                 Number of times to retry sampling discarded rows.
                 Defaults to 100.
@@ -439,7 +454,7 @@ class Onto_BaseTabularModel:
         """
         if conditions is None:
             num_rows = num_rows or self._num_rows
-            return self._sample_batch(num_rows, max_retries, max_rows_multiplier)
+            return self._sample_batch(num_rows, unseen_rds, sort, max_retries, max_rows_multiplier)
 
         # convert conditions to dataframe
         conditions = self._make_conditions_df(conditions, num_rows)

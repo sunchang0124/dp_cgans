@@ -6,7 +6,7 @@ from dp_cgans.synthesizers.onto_dp_cgan import Onto_DPCGANSynthesizer
 from dp_cgans.onto_base import Onto_BaseTabularModel
 
 
-class DPCGANModel(Onto_BaseTabularModel):
+class Onto_DPCGANModel(Onto_BaseTabularModel):
     """Base class for all the CTGAN models.
 
     The ``CTGANModel`` class provides a wrapper for all the CTGAN models.
@@ -60,32 +60,31 @@ class DPCGANModel(Onto_BaseTabularModel):
             discrete_columns=categoricals
         )
 
-    def _sample(self, num_rows, conditions=None):
+    def _sample(self, num_rows, unseen_rds=[], sort=True):
         """Sample the indicated number of rows from the model.
 
+        Choosing a condition_column and condition_value will increase the probability of the
+        discrete condition_value happening in the condition_column.
         Args:
             num_rows (int):
                 Amount of rows to sample.
-            conditions (dict):
-                If specified, this dictionary maps column names to the column
-                value. Then, this method generates `num_rows` samples, all of
-                which are conditioned on the given variables.
-
+            unseen_rds (list-like):
+                List-like object containing names of unseen RDs to sample.
+                Does not sample from seen_rds if there is at least one item in it.
+            sort (bool):
+                Whether to sort the resulting dataframe on RDs (alphabetically). Defaults to True.
         Returns:
-            pandas.DataFrame:
-                Sampled data.
+            (Pandas.DataFrame):
+                The sampled data.
         """
-        if conditions is None:
-            return self._model.sample(num_rows)
-
-        raise NotImplementedError(f"{self._MODEL_CLASS} doesn't support conditional sampling.")
+        return self._model.sample(num_rows, unseen_rds, sort)
 
     def _xai_discriminator(self, data_samples):
 
         return self._model.xai_discriminator(data_samples)
 
 
-class Onto_DP_CGAN(DPCGANModel):
+class Onto_DP_CGAN(Onto_DPCGANModel):
     """Model wrapping ``CTGANSynthesizer`` model.
 
     Args:

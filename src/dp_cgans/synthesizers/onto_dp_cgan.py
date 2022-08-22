@@ -8,6 +8,8 @@ import warnings
 import numpy as np
 import pandas as pd
 import os
+import math
+import random
 import torch
 from packaging import version
 from torch import optim
@@ -588,7 +590,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             if self._sample_epochs > 0 and i > 0 and i % self._sample_epochs == 0:
                 self.sample(len(train_data)).to_csv(os.path.join(self._sample_epochs_path, f'{date_and_time}_sample_epoch_{str(i)}.csv'))
 
-    def sample(self, n, unseen_rds=[]):
+    def sample(self, n, unseen_rds=[], sort=True):
         """Sample data similar to the training data.
 
         Choosing a condition_column and condition_value will increase the probability of the
@@ -596,36 +598,47 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         Args:
             n (int):
                 Number of rows to sample.
-            condition_column (string):
-                Name of a discrete column.
-            condition_value (string):
-                Name of the category in the condition_column which we wish to increase the
-                probability of happening.
+            unseen_rds (list-like):
+                List-like object containing names of unseen RDs to sample.
+                Does not sample from seen_rds if there is at least one item in it.
+            sort (bool):
+                Whether to sort the resulting dataframe on RDs (alphabetically). Defaults to True.
         Returns:
-            numpy.ndarray or pandas.DataFrame
+            (Pandas.DataFrame):
+                The sampled data.
         """
 
         steps = n // self._batch_size + 1
         data = []
         sampled_rds = []
+        if len(unseen_rds) > 0:
+            unseen_rds = [rd for rd in unseen_rds for repetitions in range(math.ceil(self._batch_size/len(unseen_rds)))]
         for i in range(steps):
             mean = torch.zeros(self._batch_size, self._noise_dim)
             std = mean + 1
             fakez = torch.normal(mean=mean, std=std).to(self._device)
 
-            condvec = self._data_sampler.sample_original_condvec(self._batch_size)
-
-            if condvec is None:
-                pass
-            else:
-                c1, m1 = condvec
-                # retrieving ontology embeddings
-                rds = self._data_sampler.get_rds(cat_ids=c1, batch_size=self._batch_size)
-                fake_embeddings = self._data_sampler.get_rd_embeds(rds)
+            if len(unseen_rds) > 0:
+                random.shuffle(unseen_rds)
+                fake_embeddings = self._data_sampler.get_rd_embeds(unseen_rds)
                 fake_embeddings = torch.from_numpy(fake_embeddings).to(self._device)
 
                 fakez = torch.cat([fakez, fake_embeddings], dim=1)
-                sampled_rds += rds
+                sampled_rds += unseen_rds
+            else:
+                condvec = self._data_sampler.sample_original_condvec(self._batch_size)
+
+                if condvec is None:
+                    pass
+                else:
+                    c1, m1 = condvec
+                    # retrieving ontology embeddings
+                    rds = self._data_sampler.get_rds(cat_ids=c1, batch_size=self._batch_size)
+                    fake_embeddings = self._data_sampler.get_rd_embeds(rds)
+                    fake_embeddings = torch.from_numpy(fake_embeddings).to(self._device)
+
+                    fakez = torch.cat([fakez, fake_embeddings], dim=1)
+                    sampled_rds += rds
 
             fake = self._generator(fakez)
             fakeact = self._apply_activate(fake)
@@ -636,6 +649,8 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         sampled_data = self._transformer.inverse_transform(data)
         sampled_data.insert(loc=0, column='rare_disease', value=sampled_rds[:n])
+        if sort:
+            sampled_data.sort_values(by=['rare_disease'])
         return sampled_data
 
     def set_device(self, device):
