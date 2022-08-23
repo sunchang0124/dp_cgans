@@ -8,13 +8,13 @@ result_samples_path = '../persistent/model'
 if not os.path.exists(result_samples_path):
     os.makedirs(result_samples_path)
 
-tabular_data = pd.read_csv("../persistent/data/syn_data/syn_patients_data_seen_100_50.csv", header=0)
+tabular_data = pd.read_csv("../persistent/data/syn_data/syn_patients_data_seen_600_50_leukemia.csv", header=0)
 
 print(f'Table data: {tabular_data}')
 
 columns = tabular_data.columns.values.tolist()
 
-onto_embedding = OntologyEmbedding(embedding_path='../persistent/data/ontology/embeddings/hp_hoom_ordo_10/ontology.embeddings',
+onto_embedding = OntologyEmbedding(embedding_path='../persistent/data/ontology/embeddings/hpObo_hoom_ordo_25_100s/ontology.embeddings',
                                    embedding_size=100,
                                    hp_dict_fn='../persistent/data/ontology/HPO.dict',
                                    rd_dict_fn='../persistent/data/ontology/ORDO.dict',
@@ -25,7 +25,7 @@ epochs = 5000
 model = Onto_DP_CGAN(
     embedding=onto_embedding,
     columns=columns,
-    sample_epochs=1000,
+    sample_epochs=100000,
     sample_epochs_path=result_samples_path,
     log_file_path=result_samples_path,
     epochs=epochs, # number of training epochs
@@ -50,7 +50,7 @@ print('Training finished, saving the model')
 model.save(f'../persistent/model/{current_time}_onto_dp_cgans_model.pkl')
 
 # Unseen ZSL sampling
-unseen_file = '../persistent/data/syn_data/unseen_rds_100_50.txt'
+unseen_file = '../persistent/data/syn_data/unseen_rds_3_leukemia.txt'
 picked_unseen_rds = []
 with open(unseen_file) as uf:
     for rd in uf:
@@ -58,6 +58,9 @@ with open(unseen_file) as uf:
 
 # Sample the generated synthetic data
 nb_rows = 100
-fn = os.path.join(result_samples_path, f'{current_time}_{"unseen_" if len(picked_unseen_rds) > 0 else ""}final_sample_{nb_rows}_rows.csv')
+fn = os.path.join(result_samples_path, f'{current_time}_seen_sample_{nb_rows}_rows.csv')
+print(f'Sampling {nb_rows} seen rows')
+model.sample(nb_rows).to_csv(fn)
+fn = os.path.join(result_samples_path, f'{current_time}_{"unseen_" if len(picked_unseen_rds) > 0 else ""}sample_{nb_rows}_rows.csv')
 print(f'Sampling {nb_rows} {"unseen " if len(picked_unseen_rds) > 0 else ""}rows')
 model.sample(nb_rows, unseen_rds=picked_unseen_rds).to_csv(fn)

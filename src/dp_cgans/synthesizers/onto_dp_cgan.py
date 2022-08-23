@@ -585,10 +585,9 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     else:
                         epsilon = np.nan
 
-
             ######## ADDED ########
-            if self._sample_epochs > 0 and i > 0 and i % self._sample_epochs == 0:
-                self.sample(len(train_data)).to_csv(os.path.join(self._sample_epochs_path, f'{date_and_time}_sample_epoch_{str(i)}.csv'))
+            # if self._sample_epochs > 0 and i > 0 and i % self._sample_epochs == 0:
+                # super().super().sample(len(train_data)).to_csv(os.path.join(self._sample_epochs_path, f'{date_and_time}_sample_epoch_{str(i)}.csv'))
 
     def sample(self, n, unseen_rds=[], sort=True):
         """Sample data similar to the training data.
@@ -613,6 +612,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         sampled_rds = []
         if len(unseen_rds) > 0:
             unseen_rds = [rd for rd in unseen_rds for repetitions in range(math.ceil(self._batch_size/len(unseen_rds)))]
+            unseen_rds = unseen_rds[:self._batch_size]
         for i in range(steps):
             mean = torch.zeros(self._batch_size, self._noise_dim)
             std = mean + 1
@@ -650,7 +650,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         sampled_data = self._transformer.inverse_transform(data)
         sampled_data.insert(loc=0, column='rare_disease', value=sampled_rds[:n])
         if sort:
-            sampled_data.sort_values(by=['rare_disease'])
+            sampled_data = sampled_data.sort_values(by=['rare_disease'])
         return sampled_data
 
     def set_device(self, device):
