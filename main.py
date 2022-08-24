@@ -17,11 +17,10 @@ columns = tabular_data.columns.values.tolist()
 onto_embedding = OntologyEmbedding(embedding_path='../persistent/data/ontology/embeddings/hpObo_hoom_ordo_25_100s/ontology.embeddings',
                                    embedding_size=100,
                                    hp_dict_fn='../persistent/data/ontology/HPO.dict',
-                                   rd_dict_fn='../persistent/data/ontology/ORDO.dict',
-                                   embeddings_number=1)  # Embeddings_number at 1 means just RD embedding
+                                   rd_dict_fn='../persistent/data/ontology/ORDO.dict')  # Embeddings_number at 1 means just RD embedding
 
 # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
-epochs = 5000
+epochs = 10
 model = Onto_DP_CGAN(
     embedding=onto_embedding,
     columns=columns,
@@ -47,7 +46,7 @@ model.fit(tabular_data)
 now = datetime.now()
 current_time = now.strftime("%Y_%m_%d_%H_%M_%S")
 print('Training finished, saving the model')
-model.save(f'../persistent/model/{current_time}_onto_dp_cgans_model.pkl')
+model.save(f'../persistent/model/{current_time}_{epochs}_epochs_onto_dp_cgans_model.pkl')
 
 # Unseen ZSL sampling
 unseen_file = '../persistent/data/syn_data/unseen_rds_3_leukemia.txt'
@@ -58,9 +57,11 @@ with open(unseen_file) as uf:
 
 # Sample the generated synthetic data
 nb_rows = 100
-fn = os.path.join(result_samples_path, f'{current_time}_seen_sample_{nb_rows}_rows.csv')
+fn = os.path.join(result_samples_path, f'{current_time}_{epochs}_epochs_seen_sample_{nb_rows}_rows.csv')
 print(f'Sampling {nb_rows} seen rows')
 model.sample(nb_rows).to_csv(fn)
-fn = os.path.join(result_samples_path, f'{current_time}_{"unseen_" if len(picked_unseen_rds) > 0 else ""}sample_{nb_rows}_rows.csv')
-print(f'Sampling {nb_rows} {"unseen " if len(picked_unseen_rds) > 0 else ""}rows')
-model.sample(nb_rows, unseen_rds=picked_unseen_rds).to_csv(fn)
+
+if len(picked_unseen_rds) > 0:
+    fn = os.path.join(result_samples_path, f'{current_time}_{epochs}_epochs_unseen_sample_{nb_rows}_rows.csv')
+    print(f'Sampling {nb_rows} unseen rows')
+    model.sample(nb_rows, unseen_rds=picked_unseen_rds).to_csv(fn)

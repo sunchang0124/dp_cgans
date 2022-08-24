@@ -412,13 +412,13 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         data_dim = self._transformer.output_dimensions
 
         self._generator = Generator(
-            self._noise_dim + self._embedding.embed_size*self._embedding.embeds_number, # number of categories in the whole dataset.
+            self._noise_dim + self._embedding.embed_size,
             self._generator_dim,
             data_dim
         ).to(self._device)
 
         discriminator = Discriminator(
-            data_dim + self._embedding.embed_size*self._embedding.embeds_number,
+            data_dim + self._embedding.embed_size,
             self._discriminator_dim,
             pac=self.pac
         ).to(self._device)
@@ -441,7 +441,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         now = datetime.now()
         date_and_time = now.strftime("%Y_%m_%d_%H_%M_%S")
         if self._verbose:
-            f = open(os.path.join(self._log_file_path, f'{date_and_time}_loss_output_{epochs}.txt'), 'w')
+            f = open(os.path.join(self._log_file_path, f'{date_and_time}_{epochs}_epochs_loss_output.txt'), 'w')
             f.write('epoch,time,generator_loss,discriminator_loss\n')
             f.close()
 
@@ -461,17 +461,16 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                         real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1, opt_pair_1)
                     else:
                         # retrieving ontology embeddings
-                        fake_embeddings = self._data_sampler.get_embeds_from_col_id(col_ids=m_pair_1, cat_ids=c_pair_1, batch_size=self._batch_size)
+                        fake_embeddings = self._data_sampler.get_embeds_from_cat_ids(cat_ids=c_pair_1, batch_size=self._batch_size)
                         fake_embeddings = torch.from_numpy(fake_embeddings).to(self._device)
 
                         perm = np.arange(self._batch_size)
                         np.random.shuffle(perm)
-                        m_pair_2 = m_pair_1[perm]
                         c_pair_2 = c_pair_1[perm]
                         fakez = torch.cat([fakez, fake_embeddings], dim=1)
 
                         real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1[perm], opt_pair_1[perm])
-                        real_embeddings = self._data_sampler.get_embeds_from_col_id(col_ids=m_pair_2, cat_ids=c_pair_2, batch_size=self._batch_size)
+                        real_embeddings = self._data_sampler.get_embeds_from_cat_ids(cat_ids=c_pair_2, batch_size=self._batch_size)
                         real_embeddings = torch.from_numpy(real_embeddings).to(self._device)
 
                     fake = self._generator(fakez)
@@ -529,7 +528,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
 
                     # retrieving ontology embeddings
-                    fake_embeddings = self._data_sampler.get_embeds_from_col_id(col_ids=m_pair_1, cat_ids=c_pair_1, batch_size=self._batch_size)
+                    fake_embeddings = self._data_sampler.get_embeds_from_cat_ids(cat_ids=c_pair_1, batch_size=self._batch_size)
                     fake_embeddings = torch.from_numpy(fake_embeddings).to(self._device)
 
                     c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
@@ -564,7 +563,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                 # https://github.com/BorealisAI/private-data-generation/blob/master/models/dp_wgan.py
                 # https://github.com/tensorflow/privacy/tree/master/tutorials/walkthrough
 
-                with open(os.path.join(self._log_file_path, f'{date_and_time}_loss_output_{epochs}.txt'), 'a') as log_file:
+                with open(os.path.join(self._log_file_path, f'{date_and_time}_{epochs}_epochs_loss_output.txt'), 'a') as log_file:
                     log_file.write(f'{i+1},{current_time},{loss_g.detach().cpu():.4f},{loss_d.detach().cpu():.4f}\n')
 
                     if self.private:

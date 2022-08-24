@@ -4,10 +4,9 @@ import numpy as np
 
 class OntologyEmbedding():
 
-    def __init__(self, embedding_path, embedding_size, hp_dict_fn, rd_dict_fn, embeddings_number=3):
+    def __init__(self, embedding_path, embedding_size, hp_dict_fn, rd_dict_fn):
         self._embed_model = KeyedVectors.load(embedding_path)
         self.embed_size = embedding_size
-        self.embeds_number = embeddings_number
         self._iri_dict = {}
 
         with open(hp_dict_fn) as f:
