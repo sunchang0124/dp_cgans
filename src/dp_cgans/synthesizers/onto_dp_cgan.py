@@ -107,14 +107,10 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
     For more details about the process, please check the [Modeling Tabular data using
     Conditional GAN](https://arxiv.org/abs/1907.00503) paper.
     Args:
-        sample_epochs_path (str):
-            Path to save the samples each sample_epochs.
         log_file_path (str):
            Path to log the losses if verbose is True
         embedding (OntologyEmbedding):
             OntologyEmbedding instance to retrieve the ontology embeddings.
-        sample_epochs (int):
-            Number of epochs before sampling, 0 or less to never sample. Defaults to 100.
         noise_dim (int):
             Size of the random sample passed to the Generator. Defaults to 128.
         generator_dim (tuple or list of ints):
@@ -153,23 +149,19 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             Defaults to ``True``.
     """
 
-    def __init__(self, log_file_path, sample_epochs_path, columns, embedding=None, noise_dim=128,
-                 sample_epochs=100, generator_dim=(256, 256), discriminator_dim=(256, 256),
+    def __init__(self, log_file_path, columns, embedding=None, noise_dim=128,
+                 generator_dim=(256, 256), discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
-                 log_frequency=True, verbose=False, epochs=300, pac=10, cuda=True, private=False, conditional_columns=None):
+                 log_frequency=True, verbose=False, epochs=300, pac=10,
+                 cuda=True, private=False, conditional_columns=None):
 
         assert batch_size % 2 == 0
 
         self._embedding = embedding
         self._noise_dim = noise_dim
 
-        # Removing RD column for ZSL
-        # self._columns = columns[:1]
         self._columns = columns
-
-        self._sample_epochs = sample_epochs
-        self._sample_epochs_path = sample_epochs_path
 
         self._log_file_path = log_file_path
 
@@ -583,10 +575,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                             log_file.write('The privacy estimate is likely to be improved by expanding the set of orders.\n')
                     else:
                         epsilon = np.nan
-
-            ######## ADDED ########
-            # if self._sample_epochs > 0 and i > 0 and i % self._sample_epochs == 0:
-                # super().super().sample(len(train_data)).to_csv(os.path.join(self._sample_epochs_path, f'{date_and_time}_sample_epoch_{str(i)}.csv'))
 
     def sample(self, n, unseen_rds=[], sort=True):
         """Sample data similar to the training data.
