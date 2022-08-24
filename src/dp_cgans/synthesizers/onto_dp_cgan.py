@@ -149,7 +149,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
             Defaults to ``True``.
     """
 
-    def __init__(self, log_file_path, columns, embedding=None, noise_dim=128,
+    def __init__(self, log_file_path, embedding=None, noise_dim=128,
                  generator_dim=(256, 256), discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
@@ -160,8 +160,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         self._embedding = embedding
         self._noise_dim = noise_dim
-
-        self._columns = columns
 
         self._log_file_path = log_file_path
 
@@ -388,7 +386,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
 
         self._data_sampler = Onto_DataSampler(
             train_data_full,
-            self._columns,
             rds,
             full_transformer.output_info_list,
             self._log_frequency,

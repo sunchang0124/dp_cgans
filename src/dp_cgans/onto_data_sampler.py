@@ -7,9 +7,8 @@ import pickle as pkl
 class Onto_DataSampler(object):
     """DataSampler samples the conditional vector and corresponding data for CTGAN."""
 
-    def __init__(self, data, columns, rds, output_info, log_frequency, embedding=None):
+    def __init__(self, data, rds, output_info, log_frequency, embedding=None):
         self._data = data
-        self._columns = columns
         self._rds = rds
         self._rd_col_dim = output_info[0][0].dim
         self._embedding = embedding
