@@ -7,6 +7,11 @@ import time
 import gensim
 
 
+"""
+Script to resume OWL2Vec* ontology embedding from the document_sentences.txt file.
+"""
+
+
 def extract_owl2vec_model(config_file, document_file):
     config = configparser.ConfigParser()
     config.read(click.format_filename(config_file))
@@ -55,8 +60,15 @@ def __perform_ontology_embedding(config, document):
 
 
 config_file = './embedding.cfg'
-document_file = '../persistent/data/ontology/embeddings/hpObo_hoom_ordo_25_10s/document_sentences.txt'
+
+# Folder to resume embedding from (containing document_sentences.txt)
+output_folder = '../persistent/data/ontology/embeddings/hpObo_hoom_ordo_25_10s/
+document_file = (os.path.join(output_folder, 'document_sentences.txt'))
+
 gensim_model = extract_owl2vec_model(config_file, document_file)
 
 # Gensim format
-gensim_model.save(os.path.join('../persistent/data/ontology/embeddings/hpObo_hoom_ordo_25_10s/', 'ontology.embeddings'))
+gensim_model.save(os.path.join(output_folder, 'ontology.embeddings'))
+
+# Text format (not required)
+gensim_model.wv.save_word2vec_format(os.path.join(output_folder, "ontology.embeddings.txt"), binary=False)

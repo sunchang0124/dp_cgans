@@ -2,9 +2,13 @@ import nltk
 import os
 from owl2vec_star import owl2vec_star
 
+"""
+Ontology embedding with OWL2Vec*
+"""
+
 nltk.download('punkt')
 
-output_folder = '../persistent/data/ontology/embeddings/ordooo'
+output_folder = '../persistent/data/ontology/embeddings/hpObo_hoom_ordo'
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
@@ -21,3 +25,6 @@ gensim_model = owl2vec_star.extract_owl2vec_model(None, "./embedding.cfg", True,
 
 # Gensim format
 gensim_model.save(os.path.join(output_folder, 'ontology.embeddings'))
+
+# Text format (not required)
+gensim_model.wv.save_word2vec_format(os.path.join(output_folder, "ontology.embeddings.txt"), binary=False)

@@ -1,11 +1,15 @@
 from sdv import SDV
 from datetime import datetime
 
+"""
+Sample synthetic data from a trained model
+"""
+
 now = datetime.now()
 current_time = now.strftime("%Y_%m_%d_%H_%M_%S")
 
 nb_rows = 600
-model_file = '../persistent/model/leukemia_600_50_5000_epochs_onto_dp_cgans_model.pkl'
+model_file = '../persistent/model/leukemia_600_50_10000_epochs_onto_dp_cgans_model.pkl'
 seen_save_path = f'../persistent/model/{current_time}_seen_sample_{nb_rows}_rows.csv'
 unseen_save_path = f'../persistent/model/{current_time}_unseen_sample_{nb_rows}_rows.csv'
 
