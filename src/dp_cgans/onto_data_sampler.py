@@ -5,7 +5,20 @@ import pickle as pkl
 
 
 class Onto_DataSampler(object):
-    """DataSampler samples the conditional vector and corresponding data for CTGAN."""
+    """DataSampler samples the conditional vector and corresponding data for CTGAN.
+
+    Args:
+    data (numpy.ndarray):
+        The transformed data to use for training.
+    rds (list-like):
+        The list of values of the rare_disease column in the dataset.
+    output_info (list-like):
+        Output info from the data transformation.
+    log_frequency (bool):
+        Whether to use log to count category frequencies.
+    embedding (OntologyEmbedding):
+        Embedding class to get embeddings from.
+    """
 
     def __init__(self, data, rds, output_info, log_frequency, embedding=None):
         self._data = data
@@ -54,7 +67,6 @@ class Onto_DataSampler(object):
         self._discrete_pair_n_category = np.zeros(int(((n_discrete_columns)*(n_discrete_columns-1))/2), dtype='int32')
         self._discrete_column_pair_prob = np.zeros((int(((n_discrete_columns)*(n_discrete_columns-1))/2), int((max_category+1) * (second_max_category+1))))
 
-
         st = 0
         current_id = 0
         current_cond_st = 0
@@ -79,10 +91,8 @@ class Onto_DataSampler(object):
             else:
                 st += sum([span_info.dim for span_info in column_info])
 
-
         ### Modified by Chang###
-        # start first data column in cat cols
-        # starting after the 1st col (at 12) which will be there in all cases
+        # starting after the rare_disease column to exclude it
         st_primary = self._rd_col_dim
 
         current_id_pair = 0
@@ -91,7 +101,7 @@ class Onto_DataSampler(object):
 
         self._rid_by_cat_cols_pair = []
 
-        # STARTS AT 1 TO EXCLUDE RD COLUMN
+        # Starts at 1 to exclude the rare_disease column
         for index_primary in range(1, len(output_info)):
             column_info_primary = output_info[index_primary]
 
@@ -155,6 +165,8 @@ class Onto_DataSampler(object):
     def sample_condvec_pair(self, batch):
         """Generate the conditional vector for training.
 
+        Args:
+            batch (int): Size of the batch.
         Returns:
             cond (batch x #categories):
                 The conditional vector.
@@ -168,9 +180,6 @@ class Onto_DataSampler(object):
         if self._n_discrete_columns == 0:
             return None
 
-        # discrete_column_id = np.random.choice(
-        #     np.arange(self._n_discrete_columns), batch)
-
         paired_discrete_column_id = []
         for iter_gen in range(0, batch):
             # arange from 1 to exclude the RD column
@@ -183,13 +192,13 @@ class Onto_DataSampler(object):
 
         cond_pair = np.zeros((batch, self._n_categories), dtype='float32')
         mask_pair = np.zeros((batch, self._n_discrete_columns), dtype='int32')
-        mask_pair[np.arange(batch), np.array(paired_discrete_column_id)[:,0]] = 1
-        mask_pair[np.arange(batch), np.array(paired_discrete_column_id)[:,1]] = 1
-        mask_pair[np.arange(batch), np.array(paired_discrete_column_id)[:,2]] = 1
+        mask_pair[np.arange(batch), np.array(paired_discrete_column_id)[:, 0]] = 1
+        mask_pair[np.arange(batch), np.array(paired_discrete_column_id)[:, 1]] = 1
+        mask_pair[np.arange(batch), np.array(paired_discrete_column_id)[:, 2]] = 1
 
-        pair_id_in_col = self._random_choice_prob_pairs(converted_paired_discrete_column_id) # category_id_in_col: (0, max_num_categories), --> [0,2,1,0,2,1...]
-        pair_id_decimal = (self._discrete_pair_cond_st[np.expand_dims(converted_paired_discrete_column_id,axis=1),
-                                                                    np.expand_dims(pair_id_in_col,axis=1)]).astype(int).flatten()
+        pair_id_in_col = self._random_choice_prob_pairs(converted_paired_discrete_column_id)  # category_id_in_col: (0, max_num_categories), --> [0,2,1,0,2,1...]
+        pair_id_decimal = (self._discrete_pair_cond_st[np.expand_dims(converted_paired_discrete_column_id, axis=1),
+                                                       np.expand_dims(pair_id_in_col, axis=1)]).astype(int).flatten()
         pair_primary_secondary_cat = []
         pair_primary_secondary_col = []
         for itr_decimal in range(0, len(pair_id_decimal)):
@@ -207,9 +216,9 @@ class Onto_DataSampler(object):
 
         pair_id_all_positions = np.add(np.array(pair_primary_secondary_col), np.array(pair_primary_secondary_cat))
 
-        cond_pair[np.arange(batch), pair_id_all_positions[:,0]] = 1
-        cond_pair[np.arange(batch), pair_id_all_positions[:,1]] = 1
-        cond_pair[np.arange(batch), pair_id_all_positions[:,2]] = 1
+        cond_pair[np.arange(batch), pair_id_all_positions[:, 0]] = 1
+        cond_pair[np.arange(batch), pair_id_all_positions[:, 1]] = 1
+        cond_pair[np.arange(batch), pair_id_all_positions[:, 2]] = 1
 
         return cond_pair, mask_pair, np.array(converted_paired_discrete_column_id), pair_id_in_col
 
@@ -257,10 +266,6 @@ class Onto_DataSampler(object):
         # Slice to exclude RD column for ZSL
         return self._data[idx][:, self._rd_col_dim:]
 
-    def dim_cond_vec(self):
-        # return 3
-        return self._n_categories
-
     def generate_cond_from_condition_column_info(self, condition_info, batch):
         vec = np.zeros((batch, self._n_categories), dtype='float32')
         id = self._discrete_column_matrix_st[condition_info["discrete_column_id"]
@@ -269,6 +274,17 @@ class Onto_DataSampler(object):
         return vec
 
     def get_embeds_from_cat_ids(self, cat_ids, batch_size):
+        """Get embeddings for a batch of data, from the category ids.
+
+        Args:
+            cat_ids (numpy.ndarray):
+                Category ids, in the form of a binary matrix.
+            batch_size (int):
+                Size of the batch.
+        Returns:
+            cat_embeddings (numpy.ndarray):
+                Matrix containing embeddings of rare_diseases.
+        """
         embed_size = self._embedding.embed_size
         cat_embeddings = np.ndarray(shape=(batch_size, embed_size), dtype='float32')
         for r in range(batch_size):
@@ -278,6 +294,17 @@ class Onto_DataSampler(object):
         return cat_embeddings
 
     def get_rds(self, cat_ids, batch_size):
+        """Get list of rare_diseases from the category ids.
+
+        Args:
+            cat_ids (numpy.ndarray):
+                Category ids, in the form of a binary matrix.
+            batch_size (int):
+                Size of the batch.
+        Returns:
+            rds (list[str]):
+                List containing batch_size rare diseases labels.
+        """
         rds = []
         for r in range(batch_size):
             cat_inds = np.nonzero(cat_ids[r])[0]
@@ -286,6 +313,15 @@ class Onto_DataSampler(object):
         return rds
 
     def get_rd_embeds(self, rds):
+        """Get rare diseases embeddings from a list of rare diseases (labels).
+
+        Args:
+            rds (list):
+                List containing rare diseases labels.
+        Returns:
+            cat_embeddings (numpy.ndarray):
+                Matrix containing embeddings of rare_diseases.
+        """
         embed_size = self._embedding.embed_size
         cat_embeddings = np.ndarray(shape=(len(rds), embed_size), dtype='float32')
         for r, rd in enumerate(rds):

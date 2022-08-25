@@ -189,8 +189,8 @@ class Onto_BaseTabularModel:
 
         return sampled
 
-    def _sample_rows(self, num_rows, unseen_rds=[], sort=True, conditions=None, transformed_conditions=None,
-                     float_rtol=0.1, previous_rows=None):
+    def _sample_rows(self, num_rows, unseen_rds=[], sort=True, conditions=None,
+                     transformed_conditions=None, float_rtol=0.1, previous_rows=None):
         """Sample rows with the given conditions.
 
         Input conditions is taken both in the raw input format, which will be used
@@ -256,8 +256,9 @@ class Onto_BaseTabularModel:
             sampled = self._metadata.reverse_transform(sampled)
             return sampled, num_rows
 
-    def _sample_batch(self, num_rows=None, unseen_rds=[], sort=True, max_retries=100, max_rows_multiplier=10,
-                      conditions=None, transformed_conditions=None, float_rtol=0.01):
+    def _sample_batch(self, num_rows=None, unseen_rds=[], sort=True,
+                      max_retries=100, max_rows_multiplier=10, conditions=None,
+                      transformed_conditions=None, float_rtol=0.01):
         """Sample a batch of rows with the given conditions.
 
         This will enter a reject-sampling loop in which rows will be sampled until
@@ -399,8 +400,9 @@ class Onto_BaseTabularModel:
 
         return sampled_rows
 
-    def sample(self, num_rows=None, unseen_rds=[], sort=True, max_retries=100, max_rows_multiplier=10,
-               conditions=None, float_rtol=0.01, graceful_reject_sampling=False):
+    def sample(self, num_rows=None, unseen_rds=[], sort=True, max_retries=100,
+               max_rows_multiplier=10, conditions=None, float_rtol=0.01,
+               graceful_reject_sampling=False):
         """Sample rows from this table.
 
         Args:

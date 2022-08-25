@@ -19,7 +19,6 @@ from dp_cgans.onto_data_sampler import Onto_DataSampler
 from dp_cgans.data_transformer import DataTransformer
 from dp_cgans.synthesizers.base import BaseSynthesizer
 
-import scipy.stats
 
 ######## ADDED ########
 from datetime import datetime
@@ -354,6 +353,8 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                 Vector. If ``train_data`` is a Numpy array, this list should
                 contain the integer indices of the columns. Otherwise, if it is
                 a ``pandas.DataFrame``, this list should contain the column names.
+            epochs (int):
+                Number of epochs to train the model for.
         """
 
         # if self.conditional_columns != None:
@@ -380,6 +381,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         full_transformer.fit(train_data, discrete_columns)
         train_data_full = full_transformer.transform(train_data)
 
+        # Getting the list of unique RDs, sorted by order of appearance to correspond to category IDs
         rds = train_data.iloc[:, 0].values
         _, idx = np.unique(rds, return_index=True)
         rds = rds[np.sort(idx)]
@@ -430,6 +432,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         now = datetime.now()
         date_and_time = now.strftime("%Y_%m_%d_%H_%M_%S")
         if self._verbose:
+            # Initializing the loss file
             f = open(os.path.join(self._log_file_path, f'{date_and_time}_{epochs}_epochs_loss_output.txt'), 'w')
             f.write('epoch,time,generator_loss,discriminator_loss\n')
             f.close()
@@ -449,7 +452,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                         c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
                         real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1, opt_pair_1)
                     else:
-                        # retrieving ontology embeddings
+                        # Getting ontology embeddings
                         fake_embeddings = self._data_sampler.get_embeds_from_cat_ids(cat_ids=c_pair_1, batch_size=self._batch_size)
                         fake_embeddings = torch.from_numpy(fake_embeddings).to(self._device)
 
@@ -497,7 +500,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                         real_cat, fake_cat, self._device, self.pac)
 
                     optimizerD.zero_grad()
-                    pen.backward(retain_graph=True) # https://machinelearningmastery.com/how-to-implement-wasserstein-loss-for-generative-adversarial-networks/ 
+                    pen.backward(retain_graph=True)  # https://machinelearningmastery.com/how-to-implement-wasserstein-loss-for-generative-adversarial-networks/ 
                     loss_d.backward()
                     optimizerD.step()
 
@@ -516,7 +519,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                 else:
                     c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
 
-                    # retrieving ontology embeddings
+                    # Getting ontology embeddings
                     fake_embeddings = self._data_sampler.get_embeds_from_cat_ids(cat_ids=c_pair_1, batch_size=self._batch_size)
                     fake_embeddings = torch.from_numpy(fake_embeddings).to(self._device)
 
@@ -537,7 +540,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                 else:
                     cross_entropy_pair = self._cond_loss_pair(fake, c_pair_1, m_pair_1)
 
-                loss_g = -torch.mean(y_fake) + cross_entropy_pair # + rules_penalty
+                loss_g = -torch.mean(y_fake) + cross_entropy_pair  # + rules_penalty
 
                 optimizerG.zero_grad()
                 loss_g.backward()
@@ -552,6 +555,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                 # https://github.com/BorealisAI/private-data-generation/blob/master/models/dp_wgan.py
                 # https://github.com/tensorflow/privacy/tree/master/tutorials/walkthrough
 
+                # Logging the losses
                 with open(os.path.join(self._log_file_path, f'{date_and_time}_{epochs}_epochs_loss_output.txt'), 'a') as log_file:
                     log_file.write(f'{i+1},{current_time},{loss_g.detach().cpu():.4f},{loss_d.detach().cpu():.4f}\n')
 
@@ -594,16 +598,22 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         steps = n // self._batch_size + 1
         data = []
         sampled_rds = []
+
+        # Using unseen RDs for sampling if a list was passed as argument
         if len(unseen_rds) > 0:
+            # DUplicate the rds to match batch_size
             unseen_rds = [rd for rd in unseen_rds for repetitions in range(math.ceil(self._batch_size/len(unseen_rds)))]
             unseen_rds = unseen_rds[:self._batch_size]
+
         for i in range(steps):
             mean = torch.zeros(self._batch_size, self._noise_dim)
             std = mean + 1
             fakez = torch.normal(mean=mean, std=std).to(self._device)
 
             if len(unseen_rds) > 0:
+                # Note: unsure if shuffle is useful here
                 random.shuffle(unseen_rds)
+                # Getting ontology embeddings from the list of unseen RDs
                 fake_embeddings = self._data_sampler.get_rd_embeds(unseen_rds)
                 fake_embeddings = torch.from_numpy(fake_embeddings).to(self._device)
 
@@ -616,7 +626,7 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     pass
                 else:
                     c1, m1 = condvec
-                    # retrieving ontology embeddings
+                    # Getting ontology embeddings
                     rds = self._data_sampler.get_rds(cat_ids=c1, batch_size=self._batch_size)
                     fake_embeddings = self._data_sampler.get_rd_embeds(rds)
                     fake_embeddings = torch.from_numpy(fake_embeddings).to(self._device)
@@ -632,9 +642,11 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
         data = data[:n]
 
         sampled_data = self._transformer.inverse_transform(data)
+        # Inserting the rare_disease column of the RDs used for embeddings
         sampled_data.insert(loc=0, column='rare_disease', value=sampled_rds[:n])
         if sort:
             sampled_data = sampled_data.sort_values(by=['rare_disease'])
+
         return sampled_data
 
     def set_device(self, device):

@@ -182,7 +182,7 @@ class Onto_DP_CGAN(Onto_DPCGANModel):
 
     _MODEL_CLASS = Onto_DPCGANSynthesizer
 
-    def __init__(self, log_file_path, columns, embedding=None,
+    def __init__(self, log_file_path, embedding=None,
                  field_names=None, field_types=None, field_transformers=None,
                  anonymize_fields=None, primary_key=None, constraints=None,
                  table_metadata=None, noise_dim=128, generator_dim=(256, 256),
@@ -206,7 +206,6 @@ class Onto_DP_CGAN(Onto_DPCGANModel):
 
         self._model_kwargs = {
             'embedding': embedding,
-            'columns': columns,
             'noise_dim': noise_dim,
             'log_file_path': log_file_path,
             'generator_dim': generator_dim,
