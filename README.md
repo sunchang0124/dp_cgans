@@ -79,9 +79,11 @@ model = DP_CGAN(
 
 print("Start training model")
 model.fit(tabular_data)
+model.save("generator.pkl")
 
 # Generate 100 synthetic rows
-model.sample(100)
+syn_data = model.sample(100)
+syn_data.to_csv("syn_data_file.csv")
  ```
 
 <!-- 
