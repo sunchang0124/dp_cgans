@@ -40,3 +40,6 @@ def test_cli():
     assert result.exit_code == 0
     gen_samples = pd.read_csv("synthetic_samples.csv")
     assert len(gen_samples) == gen_size
+
+
+# print(df.groupby('rare_disease', sort=False).size().nlargest(10))

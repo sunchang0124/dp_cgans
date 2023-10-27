@@ -1,7 +1,12 @@
 loss_output_*.txt
+data/
+sample_*.csv
 synthetic_samples.csv
 
-# Ingore Mac weird file
+# Ignore KDE Dolphin folder file
+.directory
+
+# Ignore Mac weird file
 **/.DS_Store
 
 # Byte-compiled / optimized / DLL files

@@ -127,6 +127,19 @@ model.sample(100)
   ```
 -->
 
+### 🚧 Use Onto-CGANS (Work In Progress)
+
+To use the ontology version of DP-CGANS, you need to download the following:
+- Source dataset: [en_product4.xml](https://www.orphadata.com/phenotypes/)
+- [Orphanet Rare Disease Ontology (ORDO)](https://bioportal.bioontology.org/ontologies/ORDO) in OWL format
+- [Human Phenotype Ontology (HPO)](https://hpo.jax.org/app/download/ontology) in **OBO** format
+- [HPO - ORDO Ontological Module (HOOM)](https://bioportal.bioontology.org/ontologies/HOOM) in OWL format
+
+You then have to go through the `data.ipynb` notebook to pre-process the data.
+
+After pre-processing the data, you can run `onto_cgans.py` to train the Onto-CGANS model.
+
+When the model has finished training, you can sample data using the `data.ipynb` notebook or the `sample.py` script.
 
 ## 🧑‍💻 Development setup
 

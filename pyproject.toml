@@ -39,6 +39,12 @@ copulas = "0.6.1"
 ctgan = "0.5.1"
 pyreadstat = "*"
 sdv = "0.14.0"
+gensim = "^4.2.0"
+nltk = "^3.7"
+rdflib = "6.0.0"
+Cython = "^0.29.30"
+Owlready2 = "^0.38"
+owl2vec-star = {git = "https://github.com/cudillal/OWL2Vec-Star.git"}
 typer = "*"
 
 
