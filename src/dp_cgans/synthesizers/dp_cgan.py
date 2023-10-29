@@ -23,6 +23,14 @@ from datetime import datetime
 from contextlib import redirect_stdout
 from dp_cgans.rdp_accountant import compute_rdp, get_privacy_spent
 
+######## ADDED - wandb ########
+import wandb
+from types import SimpleNamespace
+from pathlib import Path
+import copy
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 class Discriminator(Module):
 
     def __init__(self, input_dim, discriminator_dim, pac=10):
@@ -140,12 +148,19 @@ class DPCGANSynthesizer(BaseSynthesizer):
             Whether to attempt to use cuda for GPU computation.
             If this is False or CUDA is not available, CPU will be used.
             Defaults to ``True``.
+        private (bool): 
+            Whether to use differential privacy
+        wandb_config (dict):
+            whether to use weights and bias tool to monitor the training
+        conditional_columns (float):
+            a matrix of embeddings
     """
 
     def __init__(self, embedding_dim=128, generator_dim=(256, 256), discriminator_dim=(256, 256),
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
-                 log_frequency=True, verbose=False, epochs=300, pac=10, cuda=True, private=False, conditional_columns=None):
+                 log_frequency=True, verbose=False, epochs=300, pac=10, cuda=True, private=False,
+                 wandb=True, conditional_columns=None):
 
         assert batch_size % 2 == 0
 
@@ -167,6 +182,12 @@ class DPCGANSynthesizer(BaseSynthesizer):
 
         self.private = private
         self.conditional_columns = conditional_columns
+        if wandb == True:
+            self.wandb = wandb
+        else:
+            self.wandb = True
+            self.wandb_project_name = wandb
+            
 
         if not cuda or not torch.cuda.is_available():
             device = 'cpu'
@@ -181,6 +202,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
         self._data_sampler = None
         self._generator = None
         self._discriminator = None
+
 
     @staticmethod
     def _gumbel_softmax(logits, tau=1, hard=False, eps=1e-10, dim=-1):
@@ -372,6 +394,28 @@ class DPCGANSynthesizer(BaseSynthesizer):
         #         discrete_columns = self.conditional_columns
         #     else:
         #         raise NotImplementedError("Conditional columns are not in the valid columns.",discrete_columns)
+        if self.wandb == True:
+            config = SimpleNamespace(
+                epochs=epochs, # number of training epochs
+                batch_size=self._batch_size, # the size of each batch
+                log_frequency=self._log_frequency,
+                verbose=self._verbose,
+                generator_dim=self._generator_dim,
+                discriminator_dim=self._discriminator_dim,
+                generator_lr=self._generator_lr,
+                discriminator_lr=self._discriminator_lr,
+                discriminator_steps=self._discriminator_steps, 
+                private=self.private
+                
+            )
+
+            wandb_config = wandb.init(
+                project=self.wandb_project_name,
+                config=config
+            )
+ 
+        real_data_columns = [col for col in train_data.columns if '.value' in col]
+        real_data = copy.deepcopy(train_data[real_data_columns])
 
 
         self._validate_discrete_columns(train_data, discrete_columns)
@@ -429,8 +473,8 @@ class DPCGANSynthesizer(BaseSynthesizer):
                 ######## ADDED ########
                 for i in range(epochs):
                     for id_ in range(steps_per_epoch):
-
                         for n in range(self._discriminator_steps):
+        
                             fakez = torch.normal(mean=mean, std=std)
 
                             # condvec = self._data_sampler.sample_condvec(self._batch_size)
@@ -566,13 +610,14 @@ class DPCGANSynthesizer(BaseSynthesizer):
                         else:
                             cross_entropy_pair = self._cond_loss_pair(fake, c_pair_1, m_pair_1)
 
-
+                        # loss_g_pure =  -torch.mean(y_fake)
                         loss_g = -torch.mean(y_fake) + cross_entropy_pair # + rules_penalty
                         
 
                         optimizerG.zero_grad()
                         loss_g.backward()
                         optimizerG.step()
+
                     
                     if self._verbose:
                         ######## ADDED ########
@@ -585,6 +630,42 @@ class DPCGANSynthesizer(BaseSynthesizer):
 
                         print(current_time, f"Epoch {i+1}, Loss G: {loss_g.detach().cpu(): .4f},"
                             f"Loss D: {loss_d.detach().cpu(): .4f}", flush=True)
+
+                        if self.wandb == True:
+                            ## Add WB logs
+                            metrics = {
+                                # "train/loss_g_pure": loss_g_pure.detach().cpu(),
+                                "train/loss_g": loss_g.detach().cpu(),
+                                "train/loss_d": loss_d.detach().cpu(),
+                                "train/epoch": i + 1,
+                                #"train/example_ct": len(loss_g)
+                            }
+                            wandb.log(metrics)
+
+
+                            SAVE_DIR = Path('./data/weights/')
+                            SAVE_DIR.mkdir(exist_ok=True, parents=True)
+
+                        # if i%50 == 0:
+                        #     ckpt_file = SAVE_DIR/f"context_model_{i}.pkl"
+                        #     ### torch.save(nn_model.state_dict(), ckpt_file)
+                        #     self.save(ckpt_file)
+
+                        #     artifact_name = f"{wandb.run.id}_context_model"
+                        #     at = wandb.Artifact(artifact_name, type="model")
+                        #     at.add_file(ckpt_file)
+                        #     wandb.log_artifact(at, aliases=[f"epoch_{i}"])
+
+                        #     syn_data = self.sample(len(train_data))[real_data_columns]
+                        #     # real_data.columns = syn_data.columns
+                        #     corr_diff_plot = self.corr_plot(real_data, syn_data)
+
+                        #     wandb.log({
+                        #         "sample_differences_with_realData": wandb.Image(plt)
+                        #         # "train_samples": wandb.Table(dataframe=self.sample(len(train_data)))
+                        #         ### "train_samples": [wandb.Image(img) for img in samples.split(1)]
+                        #         })
+
 
 
                         if self.private:
@@ -609,6 +690,34 @@ class DPCGANSynthesizer(BaseSynthesizer):
 
                         
                     ######## ADDED ########
+                if self.wandb == True:
+                    wandb.finish()
+
+                
+#
+    # def corr_plot(self, real_data, syn_data):
+    #     # Correlation between different variables
+    #     #
+    #     corr_diff = (real_data.corr() - syn_data.corr()).abs()
+    #     #
+    #     # Set up the matplotlib plot configuration
+    #     #
+    #     f, ax = plt.subplots(figsize=(12, 10))
+    #     #
+    #     # Generate a mask for upper traingle
+    #     #
+    #     mask = np.triu(np.ones_like(corr_diff, dtype=bool))
+    #     #
+    #     # Configure a custom diverging colormap
+    #     #
+    #     cmap = sns.color_palette("Blues", as_cmap=True)
+    #     #
+    #     # Draw the heatmap
+    #     #
+    #     corr_diff_plot = sns.heatmap(corr_diff, annot=False, mask = mask, cmap=cmap, vmax=0.5)
+
+    #     return corr_diff_plot
+    
                     
 
     def sample(self, n, condition_column=None, condition_value=None):
