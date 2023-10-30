@@ -390,7 +390,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
         #         discrete_columns = self.conditional_columns
         #     else:
         #         raise NotImplementedError("Conditional columns are not in the valid columns.",discrete_columns)
-        if (self.wandb == True) or (len(self.wandb) > 0 ):
+        if self.wandb == True:
             config = SimpleNamespace(
                 epochs=epochs, # number of training epochs
                 batch_size=self._batch_size, # the size of each batch
@@ -406,7 +406,8 @@ class DPCGANSynthesizer(BaseSynthesizer):
             )
 
             wandb_config = wandb.init(
-                # project=self.wandb,
+                project="dp_cgans_training_monitor",
+                anonymous="allow",
                 config=config
             )
  
@@ -627,7 +628,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
                         print(current_time, f"Epoch {i+1}, Loss G: {loss_g.detach().cpu(): .4f},"
                             f"Loss D: {loss_d.detach().cpu(): .4f}", flush=True)
 
-                        if self.wandb == True or (len(self.wandb) > 0):
+                        if self.wandb == True :
                             ## Add WB logs
                             metrics = {
                                 # "train/loss_g_pure": loss_g_pure.detach().cpu(),
@@ -686,7 +687,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
 
                         
                     ######## ADDED ########
-                if self.wandb == True or (len(self.wandb) > 0):
+                if self.wandb == True:
                     wandb.finish()
 
                 

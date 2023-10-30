@@ -42,7 +42,7 @@ def cli_gen(
         discriminator_lr=2e-4,
         discriminator_steps=1, 
         private=False,
-        wandb=True
+        wandb=False
     )
 
     if verbose: print(f'🗜️  Model instantiated, fitting...')
