@@ -29,7 +29,6 @@ from types import SimpleNamespace
 from pathlib import Path
 import copy
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 class Discriminator(Module):
 
@@ -160,7 +159,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
                  log_frequency=True, verbose=False, epochs=300, pac=10, cuda=True, private=False,
-                 wandb=True, conditional_columns=None):
+                 wandb=False, conditional_columns=None):
 
         assert batch_size % 2 == 0
 
@@ -182,11 +181,8 @@ class DPCGANSynthesizer(BaseSynthesizer):
 
         self.private = private
         self.conditional_columns = conditional_columns
-        if wandb == True:
-            self.wandb = wandb
-        else:
-            self.wandb = True
-            self.wandb_project_name = wandb
+        self.wandb = wandb
+  
             
 
         if not cuda or not torch.cuda.is_available():
@@ -394,7 +390,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
         #         discrete_columns = self.conditional_columns
         #     else:
         #         raise NotImplementedError("Conditional columns are not in the valid columns.",discrete_columns)
-        if self.wandb == True:
+        if (self.wandb == True) or (len(self.wandb) > 0 ):
             config = SimpleNamespace(
                 epochs=epochs, # number of training epochs
                 batch_size=self._batch_size, # the size of each batch
@@ -410,7 +406,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
             )
 
             wandb_config = wandb.init(
-                project=self.wandb_project_name,
+                # project=self.wandb,
                 config=config
             )
  
@@ -631,7 +627,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
                         print(current_time, f"Epoch {i+1}, Loss G: {loss_g.detach().cpu(): .4f},"
                             f"Loss D: {loss_d.detach().cpu(): .4f}", flush=True)
 
-                        if self.wandb == True:
+                        if self.wandb == True or (len(self.wandb) > 0):
                             ## Add WB logs
                             metrics = {
                                 # "train/loss_g_pure": loss_g_pure.detach().cpu(),
@@ -690,7 +686,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
 
                         
                     ######## ADDED ########
-                if self.wandb == True:
+                if self.wandb == True or (len(self.wandb) > 0):
                     wandb.finish()
 
                 

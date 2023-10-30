@@ -9,11 +9,11 @@ import pandas as pd
 import rdt
 from faker import Faker
 
-from sdv.constraints.base import Constraint
-from sdv.constraints.errors import MissingConstraintColumnError
-from sdv.errors import ConstraintsNotMetError
-from sdv.metadata.errors import MetadataError, MetadataNotFittedError
-from sdv.metadata.utils import strings_from_regex
+from dp_cgans.constraints.base import Constraint
+from dp_cgans.constraints.errors import MissingConstraintColumnError
+from dp_cgans.errors import ConstraintsNotMetError
+from dp_cgans.metadata.errors import MetadataError, MetadataNotFittedError
+from dp_cgans.metadata.utils import strings_from_regex
 
 LOGGER = logging.getLogger(__name__)
 
@@ -110,19 +110,19 @@ class Table:
 
     _ANONYMIZATION_MAPPINGS = dict()
     _TRANSFORMER_TEMPLATES = {
-        'integer': rdt.transformers.NumericalTransformer(dtype=int),
-        'float': rdt.transformers.NumericalTransformer(dtype=float),
-        'categorical': rdt.transformers.CategoricalTransformer,
-        'categorical_fuzzy': rdt.transformers.CategoricalTransformer(fuzzy=True),
-        'one_hot_encoding': rdt.transformers.OneHotEncodingTransformer,
-        'label_encoding': rdt.transformers.LabelEncodingTransformer,
-        'boolean': rdt.transformers.BooleanTransformer,
-        'datetime': rdt.transformers.DatetimeTransformer(strip_constant=True),
+        'integer': rdt.transformers.FloatFormatter(),
+        'float': rdt.transformers.FloatFormatter(),
+        'categorical': rdt.transformers.UniformEncoder(),
+        'categorical_fuzzy': rdt.transformers.UniformEncoder(),
+        'one_hot_encoding': rdt.transformers.OneHotEncoder(), #one_hot_encoding
+        'label_encoding': rdt.transformers.LabelEncoder(),
+        'boolean': rdt.transformers.BinaryEncoder(),
+        'datetime': rdt.transformers.UnixTimestampEncoder(),
     }
     _DTYPE_TRANSFORMERS = {
         'i': 'integer',
         'f': 'float',
-        'O': 'one_hot_encoding',
+        'c': 'one_hot_encoding', #'one_hot_encoding',
         'b': 'boolean',
         'M': 'datetime',
     }
@@ -233,13 +233,13 @@ class Table:
 
     def _update_transformer_templates(self, rounding, min_value, max_value):
         default_numerical_transformer = self._TRANSFORMER_TEMPLATES['integer']
-        if (rounding != default_numerical_transformer.rounding
+        if (rounding != default_numerical_transformer._learn_rounding_digits
                 or min_value != default_numerical_transformer.min_value
                 or max_value != default_numerical_transformer.max_value):
-            custom_int = rdt.transformers.NumericalTransformer(
-                dtype=int, rounding=rounding, min_value=min_value, max_value=max_value)
-            custom_float = rdt.transformers.NumericalTransformer(
-                dtype=float, rounding=rounding, min_value=min_value, max_value=max_value)
+            custom_int = rdt.transformers.FloatFormatter()
+                # dtype=int, rounding=rounding, min_value=min_value, max_value=max_value)
+            custom_float = rdt.transformers.FloatFormatter()
+                # dtype=float, rounding=rounding, min_value=min_value, max_value=max_value)
             self._transformer_templates.update({
                 'integer': custom_int,
                 'float': custom_float
@@ -394,7 +394,10 @@ class Table:
             if field_transformer:
                 field_meta['transformer'] = field_transformer
             else:
-                field_meta['transformer'] = self._dtype_transformers.get(np.dtype(dtype).kind)
+                if np.dtype(dtype).kind == 'O':
+                    field_meta['transformer'] = self._dtype_transformers.get('c')
+                else:
+                    field_meta['transformer'] = self._dtype_transformers.get(np.dtype(dtype).kind)
 
             anonymize_category = self._anonymize_fields.get(field_name)
             if anonymize_category:
@@ -417,16 +420,24 @@ class Table:
                 mapping of field names and transformer instances.
         """
         transformers = dict()
+        
         for name, dtype in dtypes.items():
+ 
             field_metadata = self._fields_metadata.get(name, {})
+
             transformer_template = field_metadata.get('transformer')
+
+            
             if transformer_template is None:
+                
                 transformer_template = self._dtype_transformers[np.dtype(dtype).kind]
+           
                 if transformer_template is None:
                     # Skip this dtype
                     continue
 
                 field_metadata['transformer'] = transformer_template
+
 
             if isinstance(transformer_template, str):
                 transformer_template = self._transformer_templates[transformer_template]
@@ -438,6 +449,7 @@ class Table:
 
             LOGGER.debug('Loading transformer %s for field %s',
                          transformer.__class__.__name__, name)
+            # print(name, dtype, transformer)
             transformers[name] = transformer
 
         return transformers
@@ -479,10 +491,19 @@ class Table:
                     dtypes[column] = dtype_kind
 
         transformers_dict = self._get_transformers(dtypes)
-        for column in numerical_extras:
-            transformers_dict[column] = rdt.transformers.NumericalTransformer()
 
-        self._hyper_transformer = rdt.HyperTransformer(field_transformers=transformers_dict)
+        for column in numerical_extras:
+            transformers_dict[column] = rdt.transformers.FloatFormatter()
+
+        self._hyper_transformer = rdt.HyperTransformer() # field_transformers=transformers_dict
+
+        
+
+        self._hyper_transformer.field_sdtypes = dict((k, dtypes[k]) for k in (list(transformers_dict.keys())))
+        self._hyper_transformer.field_transformers = transformers_dict
+        
+        # print(self._hyper_transformer.get_config())
+  
         self._hyper_transformer.fit(data[list(transformers_dict.keys())])
 
     @staticmethod

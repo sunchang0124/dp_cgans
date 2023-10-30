@@ -17,15 +17,14 @@ __version__ = pkg_resources.get_distribution('dp_cgans').version
 
 
 from dp_cgans import constraints, metadata
-from dp_cgans.metadata import Metadata, Table
+# from dp_cgans.metadata import Table
 from dp_cgans.dp_cgan_init import DP_CGAN
 from dp_cgans.synthesizers.dp_cgan import DPCGANSynthesizer
 
 __all__ = (
     'constraints',
     'metadata',
-    'Metadata',
-    'Table',
+    # 'Table',
     'DP_CGAN',
     'RDF_to_Tabular',
     'DPCGANSynthesizer'

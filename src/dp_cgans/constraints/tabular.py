@@ -28,8 +28,8 @@ import uuid
 import numpy as np
 import pandas as pd
 
-from sdv.constraints.base import Constraint, import_object
-from sdv.constraints.utils import is_datetime_type
+from dp_cgans.constraints.base import Constraint, import_object
+from dp_cgans.constraints.utils import is_datetime_type
 
 
 class CustomConstraint(Constraint):
