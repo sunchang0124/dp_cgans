@@ -130,22 +130,8 @@ model.sample(100)
 
 ## 🧑‍💻 Development setup
 
-<details>
-<summary>You will need to <a href="https://python-poetry.org/docs">install Poetry</a></summary><br/>
 
-Be careful as poetry sometime uses a weird python version by default, you can check for the environment used by poetry for the current folder by running:
-
-```bash
-poetry env list
-```
-
-You can easily tell `poetry` to use your current version of python for this folder by running the following command:
-
-```bash
-poetry env use $(which python)
-```
-</details>
-
+For development, we recommend to install and use [Hatch](https://hatch.pypa.io/latest/), as it will automatically install and sync the dependencies when running development scripts. But you can also directly create a virtual environment and install the library with `pip install -e .`
 
 ### Install
 
@@ -156,52 +142,37 @@ git clone https://github.com/sunchang0124/dp_cgans
 cd dp_cgans
 ```
 
-Install the dependencies:
-
-```bash
-poetry install
-```
+> When working in development the `hatch` tool will automatically install and sync the dependencies when running a script. But you can also directly 
 
 ### Run
 
 Run the library with the CLI:
 
 ```bash
-poetry run dp-cgans gen --help
+hatch -v run dp-cgans gen --help
 ```
+
+You can also enter a new shell with the virtual environments automatically activated:
+
+```bash
+hatch shell
+dp-cgans gen --help
+```
+
+### Tests
 
 Run the tests locally:
 
 ```bash
-poetry run pytest -s
+hatch run pytest -s
 ```
 
-### Add a new dependency
+### Reset the virtual environments
 
-You can change the `pyproject.toml` file and run:
-
-```bash
-poetry update
-```
-
-Or you can do it directly with the CLI (e.g. for `pandas` here):
+In case the virtual environments is not updating as expected you can easily reset it with:
 
 ```bash
-poetry add pandas
-```
-
-### Build and publish
-
-Build:
-
-```bash
-poetry build
-```
-
-Publishing a new release is automatically done by a GitHub Action workflow when a release is created on GitHub:
-
-```bash
-poetry publish
+hatch env prune
 ```
 
 ## 📦️ New release process
@@ -209,10 +180,23 @@ poetry publish
 The deployment of new releases is done automatically by a GitHub Action workflow when a new release is created on GitHub. To release a new version:
 
 1. Make sure the `PYPI_API_TOKEN` secret has been defined in the GitHub repository (in Settings > Secrets > Actions). You can get an API token from PyPI [here](https://pypi.org/manage/account/).
-2. Increment the `version` number in the `pyproject.toml` file in the root folder of the repository.
+
+2. Increment the `version` number in `src/dp_cgans/__init__.py` file:
+
+   ```bash
+   hatch version fix    # Bump from 0.0.1 to 0.0.2
+   hatch version minor  # Bump from 0.0.1 to 0.1.0
+   hatch version 0.1.1  # Bump to the specified version
+   ```
+
 3. Create a new release on GitHub, which will automatically trigger the publish workflow, and publish the new release to PyPI.
 
-You can also manually trigger the workflow from the Actions tab in your GitHub repository webpage.
+You can also manually build and publish from you laptop:
+
+```bash
+hatch build
+hatch publish
+```
 
 ## 📚️ References / Further reading 
 

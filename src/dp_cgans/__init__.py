@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import pkg_resources
 
 # configure logging for the library with a null handler (nothing is printed by default). See
 # http://docs.pthon-guide.org/en/latest/writing/logging/
@@ -13,7 +12,7 @@ import pkg_resources
 # The main changes are in ctgan/synthesizers/ctgan.py ../data_sampler.py ../data_transformer.py
 __author__ = 'Chang Sun'
 __email__ = 'chang.sun@maastrichtuniversity.nl'
-__version__ = pkg_resources.get_distribution('dp_cgans').version
+__version__ = '0.0.5'
 
 
 from dp_cgans import constraints, metadata

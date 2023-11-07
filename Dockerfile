@@ -1,18 +1,16 @@
-FROM python:3.9
+FROM python:3.10
 
 # This docker image is only used for debugging
 
 WORKDIR /app
 
-RUN apt-get update && apt-get upgrade -y
-
-RUN curl -sSL https://install.python-poetry.org | python -
-
-ENV PATH="${PATH}:/root/.poetry/bin"
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    pip install --upgrade pip
 
 ADD . .
 
-RUN poetry install
+RUN pip install -e .
 
 
 ENTRYPOINT [ "bash" ]

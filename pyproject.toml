@@ -1,60 +1,201 @@
-[tool.poetry]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+requires-python = ">=3.7"
 name = "dp-cgans"
-version = "0.0.5"
-description = "A library to generate synthetic tabular data using Conditional Generative Adversary Networks (GANs) combined with Differential Privacy techniques."
-# description = "This package is extended from SDV (https://github.com/sdv-dev/SDV), CTGAN (https://github.com/sdv-dev/CTGAN), and Differential Privacy in GANs (https://github.com/civisanalytics/dpwgan). The author modified the conditional matrix and cost functions to emphasize on the relations between variables. The main changes are in ctgan/synthesizers/ctgan.py ../data_sampler.py ../data_transformer.py"
-authors = ["Chang Sun <sunchang0124@gmail.com>", "Vincent Emonet <vincent.emonet@gmail.com>"]
+description = "A library to generate synthetic tabular or RDF data using Conditional Generative Adversary Networks (GANs) combined with Differential Privacy techniques."
 readme = "README.md"
-license = "MIT"
-homepage = "https://github.com/sunchang0124/dp_cgans"
-repository = "https://github.com/sunchang0124/dp_cgans"
-keywords = [ "CGAN", "synthetic data", "DP", "Differential Privacy", "GAN" ]
-include = [
-    "LICENSE",
+license = { file = "LICENSE.txt" }
+authors = [
+    { name = "Sun Chang", email = "sunchang0124@gmail.com" },
 ]
+maintainers = [
+    { name = "Sun Chang", email = "sunchang0124@gmail.com" },
+    { name = "Vincent Emonet", email = "vincent.emonet@gmail.com" },
+]
+keywords = [ "CGAN", "synthetic data", "DP", "Differential Privacy", "GAN" ]
 classifiers = [
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dynamic = ["version"]
+
+dependencies = [
+    "numpy",
+    "pandas",
+    "torch",
+    "scipy",
+    "rdt",
+    "scikit-learn",
+    "graphviz",
+    "pyreadstat",
+    "sdv >=1.5.0",
+    "typer",
+    "typed-ast",
+    "wandb",
+    "copulas",
 ]
 
 
-[tool.poetry.scripts]
+[project.scripts]
 dp-cgans = "dp_cgans.__main__:cli"
 
 
-[tool.poetry.dependencies]
-python = ">=3.8,<3.10"
-wheel = "*"
-numpy = "1.22.4"
-pandas = "1.5.3"
-torch = "1.13.1"
-scipy = "1.7.3"
-rdt= "1.7.0"
-scikit-learn = "*"
-graphviz = "*"
-pyreadstat = "*"
-sdv = "1.5.0"
-typer = "*"
-typed-ast = "1.5.5"
-wandb = "0.15.12"
+[project.optional-dependencies]
+test = [
+    "pytest >=7.4.0",
+    "pytest-cov >=3.0.0",
+    "ruff",
+    "black",
+    "mypy >=1.4.1",
+    "pip-tools",
+    "types-requests",
+    "types-PyYAML",
+]
 
 
-[tool.poetry.dev-dependencies]
-mypy = "^1.6.1"
-black = "^19.10b0"
-isort = "^4.3.21"
-autoflake = "^1.3.1"
-flake8 = "^3.7.9"
-pytest = "^5.4.1"
-pytest-cov = "^2.8.1"
+[project.urls]
+Homepage = "https://github.com/sunchang0124/dp_cgans"
+Documentation = "https://github.com/sunchang0124/dp_cgans"
+History = "https://github.com/sunchang0124/dp_cgans/releases"
+Tracker = "https://github.com/sunchang0124/dp_cgans/issues"
+Source = "https://github.com/sunchang0124/dp_cgans"
 
 
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/sunchang0124/dp_cgans/issues"
+# ENVIRONMENTS AND SCRIPTS
+[tool.hatch.envs.default]
+features = [
+    "test",
+]
+
+[tool.hatch.envs.default.scripts]
+dev = "python tests/dev.py {args}"
+fmt = [
+    # "pre-commit run --all --all-files",
+    "black",
+    "ruff --fix",
+    "mypy",
+]
+test = [
+    # "fmt",
+    "pytest {args}",
+]
+cov = [
+    # "fmt",
+    "pytest --cov-report html {args}",
+]
+cov-check = [
+    "python -c 'import webbrowser; webbrowser.open(\"http://0.0.0.0:3000\")'",
+    "python -m http.server 3000 --directory ./htmlcov",
+]
+requirements = "pip-compile -o requirements.txt pyproject.toml"
 
 
-[build-system]
-requires = ["poetry_core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[[tool.hatch.envs.all.matrix]]
+python = ["3.7", "3.8", "3.9", "3.10", "3.11"]
+
+
+## TOOLS config
+
+[tool.hatch.version]
+path = "src/dp_cgans/__init__.py"
+
+# If you need to import packages from git URLs:
+# [tool.hatch.metadata]
+# allow-direct-references = true
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+omit = ["tests/*"]
+
+
+[tool.mypy]
+files = ["src/"]
+strict = true
+implicit_reexport = true
+follow_imports = "normal"
+ignore_missing_imports = true
+pretty = true
+show_column_numbers = true
+warn_no_return = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+
+
+[tool.pytest.ini_options]
+addopts = [
+    "-vvv",          # Verbose level 3
+    "--durations=10", # Show 10 slowest tests durations
+    "--cov=src",
+    "--color=yes",
+    "--cov-report=term-missing",
+    # "--cov-fail-under=85",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:httpx.*:",
+]
+
+
+[tool.black]
+color = true
+line-length = 120
+target-version = ['py38']
+skip-string-normalization = false
+
+
+# https://github.com/charliermarsh/ruff#supported-rules
+[tool.ruff]
+src = ["src", "tests"]
+target-version = "py38"
+line-length = 120
+select = [
+    "I",     # isort
+    "N",     # pep8-naming
+    "S",     # bandit
+    "A",     # flake8-builtins
+    "YTT",   # flake8-2020
+    "B",     # flake8-bugbear
+    "C",     # flake8-comprehensions
+    "ICN",   # flake8-import-conventions
+    "SIM",   # flake8-simplify
+    "TID",   # flake8-tidy-imports
+    "Q",     # flake8-quotes
+    # "FBT",   # flake8-boolean-trap
+    "F",     # pyflakes
+    "UP",    # pyupgrade
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "PLC",   # pylint convention
+    "PLE",   # pylint error
+    # "PLR",   # pylint refactor Magic value used in comparison, consider replacing 400 with a constant variable
+    "PLW",   # pylint warning
+    "RUF",   # ruff specific
+    "T",
+]
+ignore = [
+    "E501", # line too long
+    "C901", # too complex
+    "T201", # do not use print
+    "B008", # do not perform function calls in argument defaults
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["I", "F401"] # module imported but unused
+# Tests can use magic values, assertions, and relative imports
+"tests/**/*" = ["PLR2004", "S101", "S105", "TID252"]
+
+[tool.ruff.mccabe]
+max-complexity = 10
