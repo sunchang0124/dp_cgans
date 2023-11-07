@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 name = "dp-cgans"
 description = "A library to generate synthetic tabular or RDF data using Conditional Generative Adversary Networks (GANs) combined with Differential Privacy techniques."
 readme = "README.md"
@@ -28,6 +28,7 @@ classifiers = [
 dynamic = ["version"]
 
 dependencies = [
+    "copulas",
     "numpy",
     "pandas",
     "torch",
@@ -40,7 +41,6 @@ dependencies = [
     "typer",
     "typed-ast",
     "wandb",
-    "copulas",
 ]
 
 
