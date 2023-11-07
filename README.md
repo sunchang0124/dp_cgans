@@ -167,6 +167,14 @@ Run the tests locally:
 hatch run pytest -s
 ```
 
+### Format
+
+Run formatting and linting (black and ruff):
+
+```bash
+hatch run fmt
+```
+
 ### Reset the virtual environments
 
 In case the virtual environments is not updating as expected you can easily reset it with:

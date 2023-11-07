@@ -79,8 +79,8 @@ features = [
 dev = "python tests/dev.py {args}"
 fmt = [
     # "pre-commit run --all --all-files",
-    "black",
-    "ruff --fix",
+    "black src",
+    "ruff src --fix",
     "mypy",
 ]
 test = [
