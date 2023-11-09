@@ -10,7 +10,7 @@ on:
 
 jobs:
 
-  tests:
+  test:
     uses: sunchang0124/dp_cgans/.github/workflows/test.yml@main
     secrets: inherit
 
