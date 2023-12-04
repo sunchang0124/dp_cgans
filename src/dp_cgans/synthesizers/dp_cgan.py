@@ -11,12 +11,11 @@ import torch
 from packaging import version
 from torch import optim
 from torch.nn import BatchNorm1d, Dropout, LeakyReLU, Linear, Module, ReLU, Sequential, functional, BCEWithLogitsLoss, utils
+from tqdm import tqdm
 
 from dp_cgans.data_sampler import DataSampler
 from dp_cgans.data_transformer import DataTransformer
 from dp_cgans.synthesizers.base import BaseSynthesizer
-
-import scipy.stats
 
 ######## ADDED ########
 from datetime import datetime
@@ -60,9 +59,8 @@ class Discriminator(Module):
             create_graph=True, retain_graph=True, only_inputs=True
         )[0]
 
-        gradient_penalty = ((
-            gradients.view(-1, pac * real_data.size(1)).norm(2, dim=1) - 1
-        ) ** 2).mean() * lambda_
+        gradients_view = gradients.view(-1, pac * real_data.size(1)).norm(2, dim=1) - 1
+        gradient_penalty = ((gradients_view) ** 2).mean() * lambda_
 
         return gradient_penalty
 
@@ -198,6 +196,8 @@ class DPCGANSynthesizer(BaseSynthesizer):
         self._data_sampler = None
         self._generator = None
         self._discriminator = None
+    
+        self.loss_values = pd.DataFrame(columns=['Epoch', 'Generator Loss', 'Distriminator Loss'])
 
 
     @staticmethod
@@ -245,7 +245,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
                     data_t.append(transformed)
                     st = ed
                 else:
-                    assert 0
+                    raise ValueError(f'Unexpected activation function {span_info.activation_fn}.')
 
         return torch.cat(data_t, dim=1)
 
@@ -463,12 +463,20 @@ class DPCGANSynthesizer(BaseSynthesizer):
         mean = torch.zeros(self._batch_size, self._embedding_dim, device=self._device)
         std = mean + 1
 
+        self.loss_values = pd.DataFrame(columns=['Epoch', 'Generator Loss', 'Distriminator Loss'])
+        
+        epoch_iterator = tqdm(range(epochs), disable=(not self._verbose))
+        if self._verbose:
+            description = 'Gen. ({gen:.2f}) | Discrim. ({dis:.2f})'
+            epoch_iterator.set_description(description.format(gen=0, dis=0))
+            
+
         steps_per_epoch = max(len(train_data) // self._batch_size, 1)
         ######## ADDED ########
         with open('loss_output_%s.txt'%str(epochs), 'w') as f:
             with redirect_stdout(f):
                 ######## ADDED ########
-                for i in range(epochs):
+                for i in epoch_iterator:
                     for id_ in range(steps_per_epoch):
                         for n in range(self._discriminator_steps):
         
@@ -611,22 +619,46 @@ class DPCGANSynthesizer(BaseSynthesizer):
                         loss_g = -torch.mean(y_fake) + cross_entropy_pair # + rules_penalty
                         
 
-                        optimizerG.zero_grad()
+                        optimizerG.zero_grad(set_to_none=False)
                         loss_g.backward()
                         optimizerG.step()
+
+
+                    generator_loss = loss_g.detach().cpu()
+                    discriminator_loss = loss_d.detach().cpu()
+
+            
+                    epoch_loss_df = pd.DataFrame({
+                        'Epoch': [i],
+                        'Generator Loss': [generator_loss],
+                        'Discriminator Loss': [discriminator_loss]
+                    })
+                    if not self.loss_values.empty:
+                        self.loss_values = pd.concat(
+                            [self.loss_values, epoch_loss_df]
+                        ).reset_index(drop=True)
+                    else:
+                        self.loss_values = epoch_loss_df
+
 
                     
                     if self._verbose:
                         ######## ADDED ########
-                        now = datetime.now()
-                        current_time = now.strftime("%H:%M:%S")
+                        # now = datetime.now()
+                        # current_time = now.strftime("%H:%M:%S")
 
                         # Calculate the current privacy cost using the accountant
                         # https://github.com/BorealisAI/private-data-generation/blob/master/models/dp_wgan.py
                         # https://github.com/tensorflow/privacy/tree/master/tutorials/walkthrough
 
-                        print(current_time, f"Epoch {i+1}, Loss G: {loss_g.detach().cpu(): .4f},"
-                            f"Loss D: {loss_d.detach().cpu(): .4f}", flush=True)
+                        # print(current_time, f"Epoch {i+1}, Loss G: {loss_g.detach().cpu(): .4f},"
+                        #     f"Loss D: {loss_d.detach().cpu(): .4f}", flush=True)
+
+                        
+                        epoch_iterator.set_description(
+                            description.format(gen=generator_loss, dis=discriminator_loss)
+                        )
+
 
                         if self.wandb == True :
                             ## Add WB logs
@@ -639,29 +671,32 @@ class DPCGANSynthesizer(BaseSynthesizer):
                             }
                             wandb.log(metrics)
 
-
                             SAVE_DIR = Path('./data/weights/')
                             SAVE_DIR.mkdir(exist_ok=True, parents=True)
 
-                        # if i%50 == 0:
-                        #     ckpt_file = SAVE_DIR/f"context_model_{i}.pkl"
-                        #     ### torch.save(nn_model.state_dict(), ckpt_file)
-                        #     self.save(ckpt_file)
+                            if i%200 == 0:
+                                ckpt_file = SAVE_DIR/f"context_model_{i}.pkl"
+                                ### torch.save(nn_model.state_dict(), ckpt_file)
+                                self.save(ckpt_file)
 
-                        #     artifact_name = f"{wandb.run.id}_context_model"
-                        #     at = wandb.Artifact(artifact_name, type="model")
-                        #     at.add_file(ckpt_file)
-                        #     wandb.log_artifact(at, aliases=[f"epoch_{i}"])
+                                artifact_name = f"{wandb.run.id}_context_model"
+                                at = wandb.Artifact(artifact_name, type="model")
+                                at.add_file(ckpt_file)
+                                wandb.log_artifact(at, aliases=[f"epoch_{i}"])
 
-                        #     syn_data = self.sample(len(train_data))[real_data_columns]
-                        #     # real_data.columns = syn_data.columns
-                        #     corr_diff_plot = self.corr_plot(real_data, syn_data)
+                                syn_data = self.sample(len(train_data))#[real_data_columns]
+                                syn_data_columns = syn_data.columns
+                                # real_data.columns = syn_data.columns
 
-                        #     wandb.log({
-                        #         "sample_differences_with_realData": wandb.Image(plt)
-                        #         # "train_samples": wandb.Table(dataframe=self.sample(len(train_data)))
-                        #         ### "train_samples": [wandb.Image(img) for img in samples.split(1)]
-                        #         })
+                                f, ax = plt.subplots(figsize=(12, 10))
+                                syn_data[['anchor_age','drug_Dasatinib','systolic']].plot.kde()
+                                #self.corr_plot(real_data, syn_data)
+
+                                wandb.log({
+                                    "sample_differences_with_realData": wandb.Image(plt)
+                                    # "train_samples": wandb.Table(dataframe=self.sample(len(train_data)))
+                                    ### "train_samples": [wandb.Image(img) for img in samples.split(1)]
+                                    })
 
 
 

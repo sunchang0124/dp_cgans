@@ -98,7 +98,8 @@ class DataSampler(object):
                 self._categories_each_column.append(column_info[0].dim)
                 self.get_position.append(position_cnt)
             position_cnt += 1
-        max_category = max(self._categories_each_column)
+
+        max_category = max(self._categories_each_column, default=0)
 
         self._discrete_column_cond_st = np.zeros(n_discrete_columns, dtype='int32')
         self._discrete_column_n_category = np.zeros(
@@ -116,7 +117,10 @@ class DataSampler(object):
         self._n_categories = sum(self._categories_each_column)
 
         self._categories_each_column = np.array(self._categories_each_column)
-        second_max_category = np.partition(self._categories_each_column.flatten(), -2)[-2]
+        if len(self._categories_each_column)>0: # if self._categories_each_column is not empty
+            second_max_category = np.partition(self._categories_each_column.flatten(), -2)[-2]
+        else:
+            second_max_category = 0
 
         self._discrete_pair_cond_st = np.zeros((int(((n_discrete_columns)*(n_discrete_columns-1))/2),int((max_category+1) * (second_max_category+1))),dtype='int32')
         self._discrete_pair_n_category = np.zeros(int(((n_discrete_columns)*(n_discrete_columns-1))/2), dtype='int32')
