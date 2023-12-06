@@ -20,11 +20,18 @@ from dp_cgans import constraints, metadata
 from dp_cgans.dp_cgan_init import DP_CGAN
 from dp_cgans.synthesizers.dp_cgan import DPCGANSynthesizer
 
+from dp_cgans.onto_dp_cgan_init import Onto_DP_CGAN
+from dp_cgans.synthesizers.onto_dp_cgan import Onto_DPCGANSynthesizer
+from dp_cgans.ontology_embedding import OntologyEmbedding
+
 __all__ = (
     'constraints',
     'metadata',
     # 'Table',
     'DP_CGAN',
+    'Onto_DP_CGAN',
     'RDF_to_Tabular',
-    'DPCGANSynthesizer'
+    'DPCGANSynthesizer',
+    'Onto_DPCGANSynthesizer',
+    'OntologyEmbedding'
 )
