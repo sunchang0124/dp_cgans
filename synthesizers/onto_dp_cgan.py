@@ -644,31 +644,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                             SAVE_DIR = Path('./data/weights/')
                             SAVE_DIR.mkdir(exist_ok=True, parents=True)
 
-                            if i%200 == 0:
-                                ckpt_file = SAVE_DIR/f"context_model_{i}.pkl"
-                                ### torch.save(nn_model.state_dict(), ckpt_file)
-                                self.save(ckpt_file)
-
-                                artifact_name = f"{wandb.run.id}_context_model"
-                                at = wandb.Artifact(artifact_name, type="model")
-                                at.add_file(ckpt_file)
-                                wandb.log_artifact(at, aliases=[f"epoch_{i}"])
-
-                                syn_data = self.sample(len(train_data))#[real_data_columns]
-                                syn_data_columns = syn_data.columns
-                                # real_data.columns = syn_data.columns
-
-                                f, ax = plt.subplots(figsize=(12, 10))
-                                syn_data[['anchor_age','drug_Dasatinib','systolic']].plot.kde()
-                                #self.corr_plot(real_data, syn_data)
-
-                                wandb.log({
-                                    "sample_differences_with_realData": wandb.Image(plt)
-                                    # "train_samples": wandb.Table(dataframe=self.sample(len(train_data)))
-                                    ### "train_samples": [wandb.Image(img) for img in samples.split(1)]
-                                    })
-
-
 
                     if self.private:
                         orders = [1 + x / 10. for x in range(1, 100)]
@@ -692,32 +667,6 @@ class Onto_DPCGANSynthesizer(BaseSynthesizer):
                     ######## ADDED ########
                 if self.wandb == True:
                     wandb.finish()
-
-                
-#
-    # def corr_plot(self, real_data, syn_data):
-    #     # Correlation between different variables
-    #     #
-    #     corr_diff = (real_data.corr() - syn_data.corr()).abs()
-    #     #
-    #     # Set up the matplotlib plot configuration
-    #     #
-    #     f, ax = plt.subplots(figsize=(12, 10))
-    #     #
-    #     # Generate a mask for upper traingle
-    #     #
-    #     mask = np.triu(np.ones_like(corr_diff, dtype=bool))
-    #     #
-    #     # Configure a custom diverging colormap
-    #     #
-    #     cmap = sns.color_palette("Blues", as_cmap=True)
-    #     #
-    #     # Draw the heatmap
-    #     #
-    #     corr_diff_plot = sns.heatmap(corr_diff, annot=False, mask = mask, cmap=cmap, vmax=0.5)
-
-    #     return corr_diff_plot
-    
                     
 
     def sample(self, n, unseen_rds=[], sort=True):
