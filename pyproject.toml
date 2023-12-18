@@ -103,6 +103,8 @@ python = ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
 
 ## TOOLS config
+[tool.hatch.build]
+packages = ["src/dp_cgans"]
 
 [tool.hatch.version]
 path = "src/dp_cgans/__init__.py"
