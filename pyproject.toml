@@ -41,6 +41,7 @@ dependencies = [
     "typer",
     "typed-ast",
     "wandb",
+    "matplotlib==3.8.1"
 ]
 
 
