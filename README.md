@@ -21,7 +21,7 @@ This package is extended from SDV (https://github.com/sdv-dev/SDV), CTGAN (https
 
 ## 📥️ Installation
 
-You will need Python >=3.8+ and <=3.11
+You will need Python >=3.8+ and <=3.11. sdv ==1.6.0, and rdt==1.9.0
 
 ```shell
 pip install dp-cgans
