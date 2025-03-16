@@ -14,7 +14,7 @@ def test_dp_cgans():
 
     model = DP_CGAN(
         epochs=10, # number of training epochs
-        batch_size=1000, # the size of each batch
+        batch_size=100, # the size of each batch
         log_frequency=True,
         verbose=False,
         generator_dim=(128, 128, 128),
