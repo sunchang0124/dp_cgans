@@ -12,7 +12,7 @@
 # The main changes are in ctgan/synthesizers/ctgan.py ../data_sampler.py ../data_transformer.py
 __author__ = 'Chang Sun'
 __email__ = 'chang.sun@maastrichtuniversity.nl'
-__version__ = '0.0.5'
+__version__ = '0.0.6'
 
 
 from dp_cgans import constraints, metadata
