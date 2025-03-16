@@ -66,7 +66,7 @@ tabular_data=pd.read_csv("../resources/example_tabular_data_UCIAdult.csv")
 # We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
 model = DP_CGAN(
     epochs=100, # number of training epochs
-    batch_size=1000, # the size of each batch
+    batch_size=100, # the size of each batch
     log_frequency=True,
     verbose=True,
     generator_dim=(128, 128, 128),
