@@ -233,7 +233,7 @@ class Table:
 
     def _update_transformer_templates(self, rounding, min_value, max_value):
         default_numerical_transformer = self._TRANSFORMER_TEMPLATES['integer']
-        if (rounding != default_numerical_transformer._learn_rounding_digits
+        if (rounding != default_numerical_transformer._rounding_digits #default_numerical_transformer._learn_rounding_digits
                 or min_value != default_numerical_transformer.min_value
                 or max_value != default_numerical_transformer.max_value):
             custom_int = rdt.transformers.FloatFormatter()
