@@ -34,6 +34,7 @@ dependencies = [
     "pandas",
     "torch",
     "scipy",
+    "matplotlib",
     "rdt==1.9.0",
     "scikit-learn",
     "graphviz",
