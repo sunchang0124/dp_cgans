@@ -11,6 +11,9 @@ __pycache__/
 .DS_Store
 .bash_history
 
+# Data folder
+data/
+
 
 # C extensions
 *.so
