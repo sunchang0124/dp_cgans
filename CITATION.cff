@@ -5,10 +5,10 @@ authors:
     given-names: Chang
     affiliation: Institute of Data Science, Maastricht University
     orcid: https://orcid.org/0000-0001-8325-8848
-    email: sunchang0124@gmail.com
-title: "DP-CGANS (Differential Privacy Conditional Generative Adversarial NetworkS) for Generating Synthetic Tabular Data"
-doi: 10.48550/arXiv.2206.13787
+    email: chang.sun@maastrichtuniversity.nl
+title: "Generating synthetic personal health data using conditional generative adversarial networks combining with differential privacy"
+doi: 10.1016/j.jbi.2023.104404
 repository-code: https://github.com/sunchang0124/dp_cgans
-date-released: 2022-07-27
+date-updated: 2025-10-24
 url: https://pypi.org/project/dp-cgans/
-# version: 0.0.3
+# version: 0.0.6
