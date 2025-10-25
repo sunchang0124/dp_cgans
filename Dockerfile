@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:3.11
 
 # This docker image is only used for debugging
 
