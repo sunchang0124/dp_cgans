@@ -813,7 +813,7 @@ from functools import wraps
 import numpy as np
 import pandas as pd
 
-from rdt.errors import TransformerInputError
+# from rdt.errors import TransformerInputError
 
 
 @contextlib.contextmanager
@@ -926,7 +926,7 @@ class BaseTransformer:
 
     def _set_missing_value_generation(self, missing_value_generation):
         if missing_value_generation not in (None, 'from_column', 'random'):
-            raise TransformerInputError(
+            raise ValueError(
                 "'missing_value_generation' must be one of the following values: "
                 "None, 'from_column' or 'random'."
             )
