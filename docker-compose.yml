@@ -3,7 +3,7 @@ version: "3"
 services:
 
   dpcgans:
-    # image: python:3.9
+    # image: python:3.11
     build: .
     volumes:
       - ./:/app
