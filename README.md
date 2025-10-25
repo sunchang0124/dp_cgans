@@ -42,7 +42,7 @@ wget https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/exam
 Then run `dp-cgans`:
 
 ```bash
-dp-cgans gen example_tabular_data_UCIAdult.csv --epochs 2 --output out.csv --gen-size 100
+dp-cgans gen example_tabular_data_UCIAdult.csv --epochs 100 --output out.csv --gen-size 100
 ```
 
 Get a full rundown of the available options for generating synthetic data with:
