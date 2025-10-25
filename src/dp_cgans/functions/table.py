@@ -6,18 +6,19 @@ import logging
 
 import numpy as np
 import pandas as pd
-import rdt
-from faker import Faker
+# from faker import Faker
 
-from dp_cgans.constraints.base import Constraint
-from dp_cgans.constraints.errors import MissingConstraintColumnError
-from dp_cgans.errors import ConstraintsNotMetError
-from dp_cgans.metadata.errors import MetadataError, MetadataNotFittedError
-from dp_cgans.metadata.utils import strings_from_regex
+from dp_cgans.functions.base import Constraint
+from dp_cgans.utils import strings_from_regex
+
+from dp_cgans.Transformers.transformers import FloatFormatter, OneHotEncoder, UniformEncoder, BinaryEncoder, UnixTimestampEncoder
+from dp_cgans.Transformers.hyper_transformer import HyperTransformer
+
 
 LOGGER = logging.getLogger(__name__)
 
 
+####################### Table
 class Table:
     """Table Metadata.
 
@@ -103,21 +104,19 @@ class Table:
     """
 
     _hyper_transformer = None
-    _fakers = None
+    # _fakers = None
     _constraint_instances = None
     _fields_metadata = None
     fitted = False
 
     _ANONYMIZATION_MAPPINGS = dict()
     _TRANSFORMER_TEMPLATES = {
-        'integer': rdt.transformers.FloatFormatter(),
-        'float': rdt.transformers.FloatFormatter(),
-        'categorical': rdt.transformers.UniformEncoder(),
-        'categorical_fuzzy': rdt.transformers.UniformEncoder(),
-        'one_hot_encoding': rdt.transformers.OneHotEncoder(), #one_hot_encoding
-        'label_encoding': rdt.transformers.LabelEncoder(),
-        'boolean': rdt.transformers.BinaryEncoder(),
-        'datetime': rdt.transformers.UnixTimestampEncoder(),
+        'integer': FloatFormatter(),
+        'float': FloatFormatter(),
+        'one_hot_encoding': OneHotEncoder(),
+        'categorical': UniformEncoder(),
+        'boolean': BinaryEncoder(),
+        'datetime': UnixTimestampEncoder(),
     }
     _DTYPE_TRANSFORMERS = {
         'i': 'integer',
@@ -157,88 +156,89 @@ class Table:
         ('id', 'string'): 'str'
     }
 
-    @staticmethod
-    def _get_faker(field_metadata):
-        """Return the faker object with localisaton set if specified in field_metadata.
+    # @staticmethod
+    # def _get_faker(field_metadata):
+    #     """Return the faker object with localisaton set if specified in field_metadata.
 
-        Args:
-            field_metadata (dict):
-                Metadata for field to read localisation from if set in `pii_locales`.
+    #     Args:
+    #         field_metadata (dict):
+    #             Metadata for field to read localisation from if set in `pii_locales`.
 
-        Returns:
-            Faker object:
-                The Faker object to anonymize the data in the field using its functions.
-        """
-        pii_locales = field_metadata.get('pii_locales', None)
-        return Faker(locale=pii_locales)
+    #     Returns:
+    #         Faker object:
+    #             The Faker object to anonymize the data in the field using its functions.
+    #     """
+    #     pii_locales = field_metadata.get('pii_locales', None)
+    #     return Faker(locale=pii_locales)
 
-    @staticmethod
-    def _get_faker_method(faker, category):
-        """Return the faker function to anonymize data.
+    # @staticmethod
+    # def _get_faker_method(faker, category):
+    #     """Return the faker function to anonymize data.
 
-        Args:
-            faker (Faker object):
-                The faker object created to get functions from.
-            category (str or tuple):
-                Fake category to use. If a tuple is passed, the first element is
-                the category and the rest are additional arguments for the Faker.
+    #     Args:
+    #         faker (Faker object):
+    #             The faker object created to get functions from.
+    #         category (str or tuple):
+    #             Fake category to use. If a tuple is passed, the first element is
+    #             the category and the rest are additional arguments for the Faker.
 
-        Returns:
-            function:
-                Faker function to generate new fake data instances.
+    #     Returns:
+    #         function:
+    #             Faker function to generate new fake data instances.
 
-        Raises:
-            ValueError:
-                A ``ValueError`` is raised if the faker category we want don't exist.
-        """
-        if isinstance(category, (tuple, list)):
-            category, *args = category
-        else:
-            args = tuple()
+    #     Raises:
+    #         ValueError:
+    #             A ``ValueError`` is raised if the faker category we want don't exist.
+    #     """
+    #     if isinstance(category, (tuple, list)):
+    #         category, *args = category
+    #     else:
+    #         args = tuple()
 
-        try:
-            if args:
-                def _faker():
-                    return getattr(faker, category)(*args)
+    #     try:
+    #         if args:
+    #             def _faker():
+    #                 return getattr(faker, category)(*args)
 
-            else:
-                def _faker():
-                    return getattr(faker, category)()
+    #         else:
+    #             def _faker():
+    #                 return getattr(faker, category)()
 
-            return _faker
-        except AttributeError:
-            raise ValueError('Category "{}" couldn\'t be found on faker'.format(category))
+    #         return _faker
+    #     except AttributeError:
+    #         raise ValueError('Category "{}" couldn\'t be found on faker'.format(category))
 
-    @staticmethod
-    def _get_fake_values(field_metadata, num_values):
-        """Return the anonymized values from Faker.
+    # @staticmethod
+    # def _get_fake_values(field_metadata, num_values):
+    #     """Return the anonymized values from Faker.
 
-        Args:
-            field_metadata (dict):
-                Metadata for field to read localisation from if set in `pii_locales`.
-                And to read the faker category from `pii_category`.
-            num_values (int):
-                Number of values to create.
+    #     Args:
+    #         field_metadata (dict):
+    #             Metadata for field to read localisation from if set in `pii_locales`.
+    #             And to read the faker category from `pii_category`.
+    #         num_values (int):
+    #             Number of values to create.
 
-        Returns:
-            generator:
-                Generator containing the anonymized values.
-        """
-        faker = Table._get_faker(field_metadata)
-        faker_method = Table._get_faker_method(faker, field_metadata['pii_category'])
-        return (
-            faker_method()
-            for _ in range(num_values)
-        )
+    #     Returns:
+    #         generator:
+    #             Generator containing the anonymized values.
+    #     """
+    #     faker = Table._get_faker(field_metadata)
+    #     faker_method = Table._get_faker_method(faker, field_metadata['pii_category'])
+    #     return (
+    #         faker_method()
+    #         for _ in range(num_values)
+    #     )
 
     def _update_transformer_templates(self, rounding, min_value, max_value):
         default_numerical_transformer = self._TRANSFORMER_TEMPLATES['integer']
+        print("ssss")
         if (rounding != default_numerical_transformer._rounding_digits #default_numerical_transformer._learn_rounding_digits
                 or min_value != default_numerical_transformer.min_value
                 or max_value != default_numerical_transformer.max_value):
-            custom_int = rdt.transformers.FloatFormatter()
+            custom_int = FloatFormatter()
                 # dtype=int, rounding=rounding, min_value=min_value, max_value=max_value)
-            custom_float = rdt.transformers.FloatFormatter()
+            custom_float = FloatFormatter()
                 # dtype=float, rounding=rounding, min_value=min_value, max_value=max_value)
             self._transformer_templates.update({
                 'integer': custom_int,
@@ -322,7 +322,7 @@ class Table:
         field_subtype = field_metadata.get('subtype')
         dtype = self._TYPES_TO_DTYPES.get((field_type, field_subtype))
         if not dtype:
-            raise MetadataError(
+            raise ValueError(
                 'Invalid type and subtype combination for field {}: ({}, {})'.format(
                     field_name, field_type, field_subtype)
             )
@@ -493,9 +493,9 @@ class Table:
         transformers_dict = self._get_transformers(dtypes)
 
         for column in numerical_extras:
-            transformers_dict[column] = rdt.transformers.FloatFormatter()
+            transformers_dict[column] = FloatFormatter()
 
-        self._hyper_transformer = rdt.HyperTransformer() # field_transformers=transformers_dict
+        self._hyper_transformer = HyperTransformer() # field_transformers=transformers_dict
 
         
 
@@ -617,9 +617,9 @@ class Table:
         for constraint in self._constraints:
             try:
                 data = constraint.transform(data)
-            except MissingConstraintColumnError:
+            except Exception as e:
                 if on_missing_column == 'error':
-                    raise MissingConstraintColumnError()
+                    raise ValueError()
 
                 elif on_missing_column == 'drop':
                     indices_to_drop = data.columns.isin(constraint.constraint_columns)
@@ -648,7 +648,7 @@ class Table:
         for constraint in self._constraints:
             if set(constraint.constraint_columns).issubset(data.columns.values):
                 if not constraint.is_valid(data).all():
-                    raise ConstraintsNotMetError('Data is not valid for the given constraints')
+                    raise ValueError('Data is not valid for the given constraints')
 
     def transform(self, data, on_missing_column='error'):
         """Transform the given data.
@@ -670,7 +670,7 @@ class Table:
                 If the table data is not valid for the provided constraints.
         """
         if not self.fitted:
-            raise MetadataNotFittedError()
+            raise ValueError()
 
         fields = [field for field in self.get_dtypes(ids=False) if field in data.columns]
         LOGGER.debug('Anonymizing table %s', self.name)
@@ -684,7 +684,8 @@ class Table:
         LOGGER.debug('Transforming table %s', self.name)
         try:
             return self._hyper_transformer.transform(data)
-        except rdt.errors.NotFittedError:
+        except Exception as e:
+            print(f"Warning to raise when ``transform`` or ``reverse_transform`` are used before fitting. Returning original data.")
             return data
 
     @classmethod
@@ -715,28 +716,31 @@ class Table:
             pandas.DataFrame
         """
         if not self.fitted:
-            raise MetadataNotFittedError()
+            raise ValueError()
 
         try:
             reversed_data = self._hyper_transformer.reverse_transform(data)
-        except rdt.errors.NotFittedError:
+        except Exception as e:
+            print(f"Warning to raise when ``transform`` or ``reverse_transform`` are used before fitting. Returning original data.")
             reversed_data = data
 
         for constraint in reversed(self._constraints):
             reversed_data = constraint.reverse_transform(reversed_data)
 
-        for name, field_metadata in self._fields_metadata.items():
-            field_type = field_metadata['type']
-            if field_type == 'id' and name not in reversed_data:
-                field_data = self._make_ids(field_metadata, len(reversed_data))
-            elif field_metadata.get('pii', False):
-                field_data = pd.Series(Table._get_fake_values(field_metadata, len(reversed_data)))
-            else:
-                field_data = reversed_data[name]
 
-            reversed_data[name] = field_data[field_data.notnull()].astype(self._dtypes[name])
+        for name, field_metadata in self._fields_metadata.items(): ### changed by chang for ontocgans (remove the first column RD column)
+            if name != "IRI":
 
-        return reversed_data[self._field_names]
+                field_type = field_metadata['type']
+                if field_type == 'id' and name not in reversed_data:
+                    field_data = self._make_ids(field_metadata, len(reversed_data))
+                elif field_metadata.get('pii', False):
+                    field_data = pd.Series(Table._get_fake_values(field_metadata, len(reversed_data)))
+                else:
+                    field_data = reversed_data[name]
+
+                reversed_data[name] = field_data[field_data.notnull()].astype(self._dtypes[name])
+        return reversed_data[self._field_names[1:]]
 
     def filter_valid(self, data):
         """Filter the data using the constraints and return only the valid rows.

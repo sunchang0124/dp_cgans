@@ -5,13 +5,11 @@ import importlib
 import inspect
 import logging
 import warnings
-
 import pandas as pd
-from copulas.multivariate.gaussian import GaussianMultivariate
-from copulas.univariate import GaussianUnivariate
-from rdt import HyperTransformer
 
-from sdv.constraints.errors import MissingConstraintColumnError
+from dp_cgans.functions.gaussian import GaussianUnivariate, GaussianMultivariate
+from dp_cgans.Transformers.hyper_transformer import HyperTransformer
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -86,31 +84,6 @@ class ConstraintMeta(type):
 
 
 class Constraint(metaclass=ConstraintMeta):
-    """Constraint base class.
-
-    This class is not intended to be used directly and should rather be
-    subclassed to create different types of constraints.
-
-    If ``handling_strategy`` is passed with the value ``transform``
-    or ``reject_sampling``, the ``filter_valid`` or ``transform`` and
-    ``reverse_transform`` methods will be replaced respectively by a simple
-    identity function.
-
-    Attributes:
-        constraint_columns (tuple[str]):
-            The names of the columns used by this constraint.
-        rebuild_columns (typle[str]):
-            The names of the columns that this constraint will rebuild during
-            ``reverse_transform``.
-    Args:
-        handling_strategy (str):
-            How this Constraint should be handled, which can be ``transform``,
-            ``reject_sampling`` or ``all``.
-        fit_columns_model (bool):
-            If False, reject sampling will be used to handle conditional sampling.
-            Otherwise, a model will be trained and used to sample other columns
-            based on the conditioned column.
-    """
 
     constraint_columns = ()
     rebuild_columns = ()
@@ -135,17 +108,6 @@ class Constraint(metaclass=ConstraintMeta):
         del table_data
 
     def fit(self, table_data):
-        """Fit ``Constraint`` class to data.
-
-        If ``fit_columns_model`` is True, then this method will fit
-        a ``GaussianCopula`` model to the relevant columns in ``table_data``.
-        Subclasses can overwrite this method, or overwrite the ``_fit`` method
-        if they will not be needing the model to handle conditional sampling.
-
-        Args:
-            table_data (pandas.DataFrame):
-                Table data.
-        """
         self._fit(table_data)
 
         if self.fit_columns_model and len(self.constraint_columns) > 1:
@@ -221,21 +183,6 @@ class Constraint(metaclass=ConstraintMeta):
         return sampled_data
 
     def _validate_constraint_columns(self, table_data):
-        """Validate the columns in ``table_data``.
-
-        If ``fit_columns_model`` is False and any columns in ``constraint_columns``
-        are not present in ``table_data``, this method will raise a
-        ``MissingConstraintColumnError``. Otherwise it will return the ``table_data``
-        unchanged. If ``fit_columns_model`` is True, then this method will sample
-        any missing ``constraint_columns`` from its model conditioned on the
-        ``constraint_columns`` that ``table_data`` does contain. If ``table_data``
-        doesn't contain any of the ``constraint_columns`` then a
-        ``MissingConstraintColumnError`` will be raised.
-
-        Args:
-            table_data (pandas.DataFrame):
-                Table data.
-        """
         missing_columns = [col for col in self.constraint_columns if col not in table_data.columns]
         if missing_columns:
             if not self._columns_model:
@@ -249,7 +196,7 @@ class Constraint(metaclass=ConstraintMeta):
 
             all_columns_missing = len(missing_columns) == len(self.constraint_columns)
             if self._columns_model is None or all_columns_missing:
-                raise MissingConstraintColumnError()
+                raise ValueError()
 
             else:
                 sampled_data = self._sample_constraint_columns(table_data)
@@ -260,85 +207,20 @@ class Constraint(metaclass=ConstraintMeta):
         return table_data
 
     def transform(self, table_data):
-        """Perform necessary transformations needed by constraint.
-
-        Subclasses can optionally overwrite this method. If the transformation
-        requires certain columns to be present in ``table_data``, then the subclass
-        should overwrite the ``_transform`` method instead. This method raises a
-        ``MissingConstraintColumnError`` if the ``table_data`` is missing any columns
-        needed to do the transformation. If columns are present, this method will call
-        the ``_transform`` method.
-
-        Args:
-            table_data (pandas.DataFrame):
-                Table data.
-
-        Returns:
-            pandas.DataFrame:
-                Input data unmodified.
-        """
         table_data = self._validate_constraint_columns(table_data)
         return self._transform(table_data)
 
     def fit_transform(self, table_data):
-        """Fit this Constraint to the data and then transform it.
-
-        Args:
-            table_data (pandas.DataFrame):
-                Table data.
-
-        Returns:
-            pandas.DataFrame:
-                Transformed data.
-        """
         self.fit(table_data)
         return self.transform(table_data)
 
     def reverse_transform(self, table_data):
-        """Identity method for completion. To be optionally overwritten by subclasses.
-
-        Args:
-            table_data (pandas.DataFrame):
-                Table data.
-
-        Returns:
-            pandas.DataFrame:
-                Input data unmodified.
-        """
         return table_data
 
     def is_valid(self, table_data):
-        """Say whether the given table rows are valid.
-
-        This is a dummy version of the method that returns a series of ``True``
-        values to avoid dropping any rows. This should be overwritten by all
-        the subclasses that have a way to decide which rows are valid and which
-        are not.
-
-        Args:
-            table_data (pandas.DataFrame):
-                Table data.
-
-        Returns:
-            pandas.Series:
-                Series of ``True`` values
-        """
         return pd.Series(True, index=table_data.index)
 
     def filter_valid(self, table_data):
-        """Get only the rows that are valid.
-
-        The filtering is done by calling the method ``is_valid``, which should
-        be overwritten by subclasses, while this method should stay untouched.
-
-        Args:
-            table_data (pandas.DataFrame):
-                Table data.
-
-        Returns:
-            pandas.DataFrame:
-                Input data unmodified.
-        """
         valid = self.is_valid(table_data)
         invalid = sum(~valid)
         if invalid:
@@ -352,17 +234,6 @@ class Constraint(metaclass=ConstraintMeta):
 
     @classmethod
     def from_dict(cls, constraint_dict):
-        """Build a Constraint object from a dict.
-
-        Args:
-            constraint_dict (dict):
-                Dict containing the keyword ``constraint`` alongside
-                any additional arguments needed to create the instance.
-
-        Returns:
-            Constraint:
-                New constraint instance.
-        """
         constraint_dict = constraint_dict.copy()
         constraint_class = constraint_dict.pop('constraint')
         subclasses = get_subclasses(cls)
@@ -375,16 +246,6 @@ class Constraint(metaclass=ConstraintMeta):
         return constraint_class(**constraint_dict)
 
     def to_dict(self):
-        """Return a dict representation of this Constraint.
-
-        The dictionary will contain the Qualified Name of the constraint
-        class in the key ``constraint``, as well as any other arguments
-        that were passed to the constructor when the instance was created.
-
-        Returns:
-            dict:
-                Dict representation of this Constraint.
-        """
         constraint_dict = {
             'constraint': _get_qualified_name(self.__class__),
         }

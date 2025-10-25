@@ -38,11 +38,12 @@ def cli_gen(
         verbose=verbose,
         generator_dim=(128, 128, 128),
         discriminator_dim=(128, 128, 128),
-        generator_lr=2e-4, 
+        generator_lr=2e-4,
         discriminator_lr=2e-4,
-        discriminator_steps=1, 
+        discriminator_steps=1,
         private=False,
-        wandb=False
+        wandb=False,
+        cuda=False
     )
 
     if verbose: print(f'🗜️  Model instantiated, fitting...')

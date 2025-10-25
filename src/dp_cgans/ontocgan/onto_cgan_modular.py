@@ -1,12 +1,12 @@
 """Wrapper around CTGAN model."""
 
 import numpy as np
-from dp_cgans.synthesizers.dp_cgan import DPCGANSynthesizer
+from dp_cgans.ontocgan.onto_cgan import Onto_DPCGANSynthesizer
 
-from dp_cgans.base import BaseTabularModel
+from dp_cgans.ontocgan.onto_base import Onto_BaseTabularModel
 
 
-class DPCGANModel(BaseTabularModel):
+class Onto_DPCGANModel(Onto_BaseTabularModel):
     """Base class for all the CTGAN models.
 
     The ``CTGANModel`` class provides a wrapper for all the CTGAN models.
@@ -29,6 +29,7 @@ class DPCGANModel(BaseTabularModel):
             table_data (pandas.DataFrame):
                 Data to be learned.
         """
+
         self._model = self._build_model()
 
         categoricals = []
@@ -54,43 +55,43 @@ class DPCGANModel(BaseTabularModel):
                 if kind in ['O', 'b']:
                     categoricals.append(field)
 
-        # print(table_data[categoricals])
-
         self._model.fit(
             table_data,
             discrete_columns=categoricals
         )
 
-    def _sample(self, num_rows, conditions=None):
+    def _sample(self, num_rows, unseen_rds=[], sort=True):
         """Sample the indicated number of rows from the model.
 
+        Choosing a condition_column and condition_value will increase the probability of the
+        discrete condition_value happening in the condition_column.
         Args:
             num_rows (int):
                 Amount of rows to sample.
-            conditions (dict):
-                If specified, this dictionary maps column names to the column
-                value. Then, this method generates `num_rows` samples, all of
-                which are conditioned on the given variables.
-
+            unseen_rds (list-like):
+                List-like object containing names of unseen RDs to sample.
+                Does not sample from seen_rds if there is at least one item in it.
+            sort (bool):
+                Whether to sort the resulting dataframe on RDs (alphabetically). Defaults to True.
         Returns:
-            pandas.DataFrame:
-                Sampled data.
+            (Pandas.DataFrame):
+                The sampled data.
         """
-        if conditions is None:
-            return self._model.sample(num_rows)
-
-        raise NotImplementedError(f"{self._MODEL_CLASS} doesn't support conditional sampling.")
-
+        return self._model.sample(num_rows, unseen_rds, sort)
 
     def _xai_discriminator(self, data_samples):
 
         return self._model.xai_discriminator(data_samples)
 
 
-class DP_CGAN(DPCGANModel):
+class Onto_DP_CGAN(Onto_DPCGANModel):
     """Model wrapping ``CTGANSynthesizer`` model.
 
     Args:
+        log_file_path (str):
+            Path to log the losses if verbose is True
+        embedding (OntologyEmbedding):
+            OntologyEmbedding instance to retrieve the ontology embeddings.
         field_names (list[str]):
             List of names of the fields that need to be modeled
             and included in the generated output data. Any additional
@@ -127,7 +128,7 @@ class DP_CGAN(DPCGANModel):
             exception will be raised.
             If not given at all, it will be built using the other
             arguments or learned from the data.
-        embedding_dim (int):
+        noise_dim (int):
             Size of the random sample passed to the Generator. Defaults to 128.
         generator_dim (tuple or list of ints):
             Size of the output samples for each one of the Residuals. A Residual Layer
@@ -179,16 +180,17 @@ class DP_CGAN(DPCGANModel):
             is given, there won't be a maximum. Defaults to ``'auto'``.
     """
 
-    _MODEL_CLASS = DPCGANSynthesizer
+    _MODEL_CLASS = Onto_DPCGANSynthesizer
 
-    def __init__(self, field_names=None, field_types=None, field_transformers=None,
-                 anonymize_fields=None, primary_key=None, constraints=None, table_metadata=None,
-                 embedding_dim=128, generator_dim=(256, 256), discriminator_dim=(256, 256),
-                 generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
-                 discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
-                 log_frequency=True, verbose=False, epochs=300, pac=10, cuda=True, 
-                 rounding='auto', min_value='auto', max_value='auto', private=False,
-                 wandb=False, ontology=None):
+    def __init__(self, log_file_path, embedding=None,
+                 field_names=None, field_types=None, field_transformers=None,
+                 anonymize_fields=None, primary_key=None, constraints=None,
+                 table_metadata=None, noise_dim=128, generator_dim=(256, 256),
+                 discriminator_dim=(256, 256), generator_lr=2e-4, generator_decay=1e-6,
+                 discriminator_lr=2e-4, discriminator_decay=1e-6, batch_size=500,
+                 discriminator_steps=1, log_frequency=True, verbose=False,
+                 epochs=300, pac=10, cuda=True, rounding='auto',
+                 min_value='auto', max_value='auto', private=False,wandb=False, ontology=None):
         super().__init__(
             field_names=field_names,
             primary_key=primary_key,
@@ -203,7 +205,9 @@ class DP_CGAN(DPCGANModel):
         )
 
         self._model_kwargs = {
-            'embedding_dim': embedding_dim,
+            'embedding': embedding,
+            'noise_dim': noise_dim,
+            'log_file_path': log_file_path,
             'generator_dim': generator_dim,
             'discriminator_dim': discriminator_dim,
             'generator_lr': generator_lr,
@@ -218,6 +222,6 @@ class DP_CGAN(DPCGANModel):
             'pac': pac,
             'cuda': cuda,
             'private': private,
-            'wandb' : wandb
+            'wandb': wandb
         }
 
