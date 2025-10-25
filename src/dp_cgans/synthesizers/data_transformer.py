@@ -3,8 +3,8 @@ from collections import namedtuple
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from rdt.transformers import ClusterBasedNormalizer, OneHotEncoder
-# from dp_cgans.Transformers.transformers  import OneHotEncoder, ClusterBasedNormalizer
+# from rdt.transformers import ClusterBasedNormalizer, OneHotEncoder
+from dp_cgans.Transformers.transformers  import OneHotEncoder, ClusterBasedNormalizer
 from sklearn.mixture import BayesianGaussianMixture
 
 SpanInfo = namedtuple("SpanInfo", ["dim", "activation_fn"])
