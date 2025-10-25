@@ -11,6 +11,7 @@ def test_dp_cgans():
     print(f'Testing DP_CGAN {__version__}')
 
     tabular_data=pd.read_csv("resources/example_tabular_data_UCIAdult.csv")
+    tabular_data['id'] = 1
 
     model = DP_CGAN(
         epochs=100, # number of training epochs
