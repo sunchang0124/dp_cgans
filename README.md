@@ -77,8 +77,15 @@ model = DP_CGAN(
     private=False,
 )
 
-print("Start training model")
+start_time = time.time()
+print("Start training the model: ")
 model.fit(tabular_data)
+end_time = time.time()
+
+elapsed_time = end_time - start_time
+print("Training model time ", elapsed_time)
+
+print("Saving the trained generator...")
 model.save("generator.pkl")
 
 # print("load the trained file.")
