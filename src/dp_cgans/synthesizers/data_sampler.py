@@ -262,14 +262,19 @@ class DataSampler(object):
         # discrete_column_id = np.random.choice(
         #     np.arange(self._n_discrete_columns), batch)
 
-        paired_discrete_column_id = []
-        for iter_gen in range(0, batch):
-            paired_discrete_column_id.append(np.random.choice(np.arange(self._n_discrete_columns), 2, replace=False)) 
-        
-        # convert paired_discrete_column_id to current_id_pair type
-        converted_paired_discrete_column_id = []
-        for each in paired_discrete_column_id:
-            converted_paired_discrete_column_id.append(self.pair_id_dict[tuple(self.get_position[np.sort(each)])])
+        # OPTIMIZED: Vectorized random pair generation
+        # Generate all pairs at once using broadcasting
+        all_col_indices = np.arange(self._n_discrete_columns)
+        paired_discrete_column_id = np.array([
+            np.random.choice(all_col_indices, 2, replace=False) for _ in range(batch)
+        ])
+
+        # OPTIMIZED: Vectorized conversion to pair IDs
+        sorted_pairs = np.sort(paired_discrete_column_id, axis=1)
+        converted_paired_discrete_column_id = np.array([
+            self.pair_id_dict[tuple(self.get_position[pair])]
+            for pair in sorted_pairs
+        ])
 
         # full_possible_combi = 0
         # for basic_item in range(0, len(self._categories_each_column)-1):
@@ -285,21 +290,52 @@ class DataSampler(object):
         pair_id_decimal = (self._discrete_pair_cond_st[np.expand_dims(converted_paired_discrete_column_id,axis=1),
                                                                     np.expand_dims(pair_id_in_col,axis=1)]).astype(int).flatten()
 
-        pair_primary_secondary_cat = []
-        pair_primary_secondary_col = []
-        for itr_decimal in range(0, len(pair_id_decimal)):
- 
-            pair_categories = self._categories_each_column * mask_pair[itr_decimal]
-            pair_id_binary = list(np.binary_repr(pair_id_decimal[itr_decimal], width=(pair_categories.sum())))
-            
-            first_cat = pair_categories[pair_categories!=0][0]
-            pair_primary_position = np.argmax(pair_id_binary[:first_cat])
-            pair_secondary_position = np.argmax(pair_id_binary[first_cat:])
-            pair_primary_secondary_cat.append([pair_primary_position, pair_secondary_position])
+        # OPTIMIZED: Replace binary string conversion with fast bitwise operations
+        # Pre-compute pair_categories for all batch items
+        pair_categories = self._categories_each_column * mask_pair  # (batch, n_columns)
 
-            pair_primary_secondary_col.append(self._discrete_column_cond_st[np.where(mask_pair[itr_decimal]==1)[0]])
+        # Extract first_cat for each batch item (categories in first selected column)
+        pair_categories_nonzero = pair_categories[pair_categories != 0].reshape(batch, 2)
+        first_cat = pair_categories_nonzero[:, 0].astype(int)
 
-        pair_id_all_positions = np.add(np.array(pair_primary_secondary_col), np.array(pair_primary_secondary_cat))
+        # Pre-allocate output arrays
+        pair_primary_position = np.zeros(batch, dtype=int)
+        pair_secondary_position = np.zeros(batch, dtype=int)
+
+        # OPTIMIZED: Extract bit positions using fast bitwise operations instead of string conversion
+        # This matches the original logic: binary string is MSB-first, find position of '1' in each segment
+        for idx in range(batch):
+            decimal_val = pair_id_decimal[idx]
+            total_width = int(pair_categories[idx].sum())
+            first_cat_val = first_cat[idx]
+
+            if decimal_val == 0:
+                continue
+
+            # Primary position: scan bits from MSB side (positions 0 to first_cat-1 in string)
+            # These correspond to bits [total_width-1] down to [total_width-first_cat]
+            for bit_pos in range(first_cat_val):
+                bit_index = total_width - 1 - bit_pos  # Convert string position to bit index
+                if (decimal_val >> bit_index) & 1:
+                    pair_primary_position[idx] = bit_pos
+                    break
+
+            # Secondary position: scan remaining bits (positions first_cat to end in string)
+            # These correspond to bits [total_width-first_cat-1] down to [0]
+            secondary_width = total_width - first_cat_val
+            for bit_pos in range(secondary_width):
+                bit_index = secondary_width - 1 - bit_pos  # Convert string position to bit index
+                if (decimal_val >> bit_index) & 1:
+                    pair_secondary_position[idx] = bit_pos
+                    break
+
+        pair_primary_secondary_cat = np.column_stack([pair_primary_position, pair_secondary_position])
+
+        # OPTIMIZED: Vectorized column position extraction
+        mask_indices = np.where(mask_pair)
+        pair_primary_secondary_col = self._discrete_column_cond_st[mask_indices[1]].reshape(batch, 2)
+
+        pair_id_all_positions = pair_primary_secondary_col + pair_primary_secondary_cat
         
         cond_pair[np.arange(batch), pair_id_all_positions[:,0]] = 1
         cond_pair[np.arange(batch), pair_id_all_positions[:,1]] = 1

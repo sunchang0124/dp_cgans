@@ -1,5 +1,8 @@
 import os
 import torch
+import threading
+import queue
+import time
 
 from datetime import datetime
 import warnings
@@ -95,6 +98,86 @@ class Generator(Module):
     def forward(self, input):
         data = self.seq(input)
         return data
+
+
+class DataPrefetcher:
+    """Multi-threaded prefetcher with parallel workers to maximize data throughput."""
+
+    def __init__(self, data_sampler, batch_size, device, num_workers=8, prefetch_count=16):
+        self.data_sampler = data_sampler
+        self.batch_size = batch_size
+        self.device = device
+        self.num_workers = num_workers
+        self.queue = queue.Queue(maxsize=prefetch_count)
+        self.threads = []
+        self.stop_flag = False
+        self.error_count = 0
+
+    def _worker(self, worker_id):
+        """Background thread worker that prefetches data."""
+        while not self.stop_flag:
+            try:
+                # Sample conditional vector pair
+                condvec_pair = self.data_sampler.sample_condvec_pair(self.batch_size)
+
+                if condvec_pair is None:
+                    c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
+                    real = self.data_sampler.sample_data_pair(self.batch_size, col_pair_1, opt_pair_1)
+                    perm = None
+                else:
+                    c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
+                    perm = np.arange(self.batch_size)
+                    np.random.shuffle(perm)
+                    real = self.data_sampler.sample_data_pair(self.batch_size, col_pair_1[perm], opt_pair_1[perm])
+
+                # Put the prefetched data in queue (blocks if queue is full)
+                if not self.stop_flag:
+                    self.queue.put((condvec_pair, real, perm), timeout=1)
+            except queue.Full:
+                continue
+            except Exception as e:
+                if not self.stop_flag:
+                    self.error_count += 1
+                    if self.error_count <= 3:  # Only print first 3 errors
+                        print(f"Prefetcher worker {worker_id} error: {e}")
+                        import traceback
+                        traceback.print_exc()
+                break
+
+    def start(self):
+        """Start all prefetcher worker threads."""
+        self.stop_flag = False
+        self.error_count = 0
+        for i in range(self.num_workers):
+            thread = threading.Thread(target=self._worker, args=(i,), daemon=True)
+            thread.start()
+            self.threads.append(thread)
+        print(f"Started {self.num_workers} parallel data prefetcher workers")
+
+    def get(self, timeout=30):
+        """Get the next prefetched batch."""
+        try:
+            return self.queue.get(timeout=timeout)
+        except queue.Empty:
+            print(f"WARNING: Prefetcher queue empty! Workers may have crashed.")
+            return None
+
+    def stop(self):
+        """Stop all prefetcher threads."""
+        self.stop_flag = True
+        # Clear the queue to unblock any waiting workers
+        try:
+            while not self.queue.empty():
+                self.queue.get_nowait()
+        except queue.Empty:
+            pass
+
+        # Wait for all threads to finish
+        for thread in self.threads:
+            if thread and thread.is_alive():
+                thread.join(timeout=2)
+        self.threads = []
+        print(f"Stopped all prefetcher workers")
 
 
 class DPCGANSynthesizer(BaseSynthesizer):
@@ -442,43 +525,89 @@ class DPCGANSynthesizer(BaseSynthesizer):
             
         steps_per_epoch = max(len(train_data) // self._batch_size, 1)
 
+        # DISABLED: Multi-threading causes severe CPU/memory contention that kills GPU performance
+        # Python's GIL and numpy operations don't parallelize well
+        # prefetcher = DataPrefetcher(...)
+        prefetcher = None
+
+        print(f"Training Configuration:")
+        print(f"  Batch size: {self._batch_size}")
+        print(f"  Steps per epoch: {steps_per_epoch}")
+        print(f"  Generator dim: {self._generator_dim}")
+        print(f"  Discriminator dim: {self._discriminator_dim}")
+        print(f"  Device: {self._device}")
+        print(f"  Data shape: {train_data.shape}")
+        print(f"  Prefetching: DISABLED (direct sampling - threading caused contention)")
         print(f"{datetime.now()}", 'epoch: ', epoch_iterator)
         filename = f'loss_output_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
         with open(filename, 'w') as loss_file:
             loss_file.write("Epoch,Generator_Loss,Discriminator_Loss,Timestamp\n")
             for i in epoch_iterator:
-                if i == 0 and self._device == 'cuda':
+                if i == 0 and self._device.type == 'cuda':
                     torch.cuda.init()
                     torch.cuda.synchronize()
                     print("CUDA initialized:", torch.cuda.get_device_name(0))
+
+                # Timing diagnostics for first epoch
+                if i == 0:
+                    timing_stats = {
+                        'disc_data_fetch': [],
+                        'disc_forward': [],
+                        'disc_backward': [],
+                        'gen_data_fetch': [],
+                        'gen_forward': [],
+                        'cond_loss_pair': [],
+                        'gen_backward': [],
+                        'step_total': [],
+                        'queue_size': []
+                    }
+
                 for id_ in range(steps_per_epoch):
-                    print(f"{datetime.now()}", "steps_per_epoch", id_)
+                    if i == 0:
+                        step_start = time.time()
+                        # Track queue health
+                        if prefetcher:
+                            timing_stats['queue_size'].append(prefetcher.queue.qsize())
+
                     for n in range(self._discriminator_steps):
+                        if i == 0:
+                            data_start = time.time()
 
                         fakez = torch.normal(mean=mean, std=std).to(self._device)
-                        
-                        condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
-                        c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
 
+                        # Direct sampling (prefetcher disabled)
+                        prefetch_result = prefetcher.get() if prefetcher else None
+                        if prefetch_result is None:
+                            # Fallback to direct sampling if prefetcher fails
+                            condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
+                            if condvec_pair is None:
+                                c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
+                                real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1, opt_pair_1)
+                                perm = None
+                            else:
+                                c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
+                                perm = np.arange(self._batch_size)
+                                np.random.shuffle(perm)
+                                real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1[perm], opt_pair_1[perm])
+                        else:
+                            condvec_pair, real, perm = prefetch_result
 
                         if condvec_pair is None:
                             c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
-                            real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1, opt_pair_1)
                         else:
                             c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
-                            c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
-                            m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
+                            c_pair_1 = torch.from_numpy(c_pair_1).to(self._device, non_blocking=True)
+                            m_pair_1 = torch.from_numpy(m_pair_1).to(self._device, non_blocking=True)
                             fakez = torch.cat([fakez, c_pair_1], dim=1)
-
-                            perm = np.arange(self._batch_size)
-                            np.random.shuffle(perm)
-        
-                            real = self._data_sampler.sample_data_pair(self._batch_size, col_pair_1[perm], opt_pair_1[perm])
                             c_pair_2 = c_pair_1[perm]
 
 
-                        real = torch.from_numpy(real.astype('float32')).to(self._device)
-                        
+                        real = torch.from_numpy(real.astype('float32')).to(self._device, non_blocking=True)
+
+                        if i == 0:
+                            data_time = time.time() - data_start
+                            forward_start = time.time()
+
                         fake = self._generator(fakez) # categories (unique value count) + continuous (1+n_components)
                         fakeact = self._apply_activate(fake)
 
@@ -496,25 +625,28 @@ class DPCGANSynthesizer(BaseSynthesizer):
                         y_real = self._discriminator(real_cat)
                         loss_d = -(torch.mean(y_real) - torch.mean(y_fake))
 
+                        if i == 0:
+                            forward_time = time.time() - forward_start
+                            backward_start = time.time()
 
                         #### DP ####
                         if self.private:
                             sigma = 1
-                            weight_clip = 0.01 
+                            weight_clip = 0.01
 
                             if sigma is not None:
                                 for parameter in self._discriminator.parameters():
                                     parameter.register_hook(
-                                        lambda grad: grad.cuda() + (1 / self._batch_size) * sigma
-                                        * torch.randn(parameter.shape).cuda()
+                                        lambda grad: grad.to(self._device) + (1 / self._batch_size) * sigma
+                                        * torch.randn(parameter.shape).to(self._device)
                                     )
                         #### DP ####
                         pen = self._discriminator.calc_gradient_penalty(
                             real_cat, fake_cat, self._device, self.pac)
 
                         optimizerD.zero_grad()
-                        # https://machinelearningmastery.com/how-to-implement-wasserstein-loss-for-generative-adversarial-networks/ 
-                        pen.backward(retain_graph=True) 
+                        # https://machinelearningmastery.com/how-to-implement-wasserstein-loss-for-generative-adversarial-networks/
+                        pen.backward(retain_graph=True)
                         loss_d.backward()
                         optimizerD.step()
                         if self.private:
@@ -524,18 +656,37 @@ class DPCGANSynthesizer(BaseSynthesizer):
                                 param.data.clamp_(-weight_clip, weight_clip)
                             #### DP ####
 
-                    fakez = torch.normal(mean=mean, std=std)
-                    condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
+                        if i == 0:
+                            backward_time = time.time() - backward_start
+                            timing_stats['disc_data_fetch'].append(data_time)
+                            timing_stats['disc_forward'].append(forward_time)
+                            timing_stats['disc_backward'].append(backward_time)
+
+                    if i == 0:
+                        gen_data_start = time.time()
+
+                    fakez = torch.normal(mean=mean, std=std).to(self._device)
+
+                    # Direct sampling (prefetcher disabled)
+                    prefetch_result = prefetcher.get() if prefetcher else None
+                    if prefetch_result is None:
+                        # Direct sampling
+                        condvec_pair = self._data_sampler.sample_condvec_pair(self._batch_size)
+                    else:
+                        condvec_pair, _, _ = prefetch_result  # Only need condvec_pair for generator
 
                     if condvec_pair is None:
                         c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = None, None, None, None
                     else:
                         c_pair_1, m_pair_1, col_pair_1, opt_pair_1 = condvec_pair
-        
-                        c_pair_1 = torch.from_numpy(c_pair_1).to(self._device)
-                        m_pair_1 = torch.from_numpy(m_pair_1).to(self._device)
+
+                        c_pair_1 = torch.from_numpy(c_pair_1).to(self._device, non_blocking=True)
+                        m_pair_1 = torch.from_numpy(m_pair_1).to(self._device, non_blocking=True)
                         fakez = torch.cat([fakez, c_pair_1], dim=1)
-        
+
+                    if i == 0:
+                        gen_data_time = time.time() - gen_data_start
+                        gen_forward_start = time.time()
 
                     fake = self._generator(fakez)
                     fakeact = self._apply_activate(fake)
@@ -545,28 +696,36 @@ class DPCGANSynthesizer(BaseSynthesizer):
                     else:
                         y_fake = self._discriminator(fakeact)
 
+                    if i == 0:
+                        gen_forward_time = time.time() - gen_forward_start
+                        cond_loss_start = time.time()
+
                     if condvec_pair is None:
                         cross_entropy_pair = 0
                     else:
                         cross_entropy_pair = self._cond_loss_pair(fake, c_pair_1, m_pair_1)
 
+                    if i == 0:
+                        cond_loss_time = time.time() - cond_loss_start
+                        gen_backward_start = time.time()
+
                     # loss_g_pure =  -torch.mean(y_fake)
                     loss_g = -torch.mean(y_fake) + cross_entropy_pair # + rules_penalty
-
-                    # Before backward
-                    if self._device == 'cuda':
-                        print(f"GPU allocated before backward: {torch.cuda.memory_allocated() / 1024**2:.1f} MB")
-                        print(f"GPU reserved before backward: {torch.cuda.memory_reserved() / 1024**2:.1f} MB")
-                        torch.cuda.reset_peak_memory_stats()
 
                     optimizerG.zero_grad(set_to_none=False)
                     loss_g.backward()
                     optimizerG.step()
 
-                    if self._device == 'cuda':
-                        print(f"GPU allocated after backward: {torch.cuda.memory_allocated() / 1024**2:.1f} MB")
-                        print(f"GPU peak memory: {torch.cuda.max_memory_allocated() / 1024**2:.1f} MB")
-                        # print("If peak memory is small, backward computation is on CPU!")
+                    if i == 0:
+                        gen_backward_time = time.time() - gen_backward_start
+                        step_total_time = time.time() - step_start
+
+                        # Record all timings
+                        timing_stats['gen_data_fetch'].append(gen_data_time)
+                        timing_stats['gen_forward'].append(gen_forward_time)
+                        timing_stats['cond_loss_pair'].append(cond_loss_time)
+                        timing_stats['gen_backward'].append(gen_backward_time)
+                        timing_stats['step_total'].append(step_total_time)
 
                 generator_loss = loss_g.detach().cpu().item()
                 discriminator_loss = loss_d.detach().cpu().item()
@@ -575,8 +734,51 @@ class DPCGANSynthesizer(BaseSynthesizer):
                 loss_file.write(f"{i},{generator_loss:.3f},{discriminator_loss:.3f},{timestamp}\n")
                 loss_file.flush()  # Write immediately to disk
 
-                print(f"{datetime.now()}", 'Epoch', [i], '; Generator Loss', [generator_loss],'; Discriminator Loss',[discriminator_loss])
+                # Print detailed timing statistics after first epoch
+                if i == 0:
+                    total_time = np.sum(timing_stats['step_total'])
+                    disc_data = np.sum(timing_stats['disc_data_fetch'])
+                    disc_fwd = np.sum(timing_stats['disc_forward'])
+                    disc_bwd = np.sum(timing_stats['disc_backward'])
+                    gen_data = np.sum(timing_stats['gen_data_fetch'])
+                    gen_fwd = np.sum(timing_stats['gen_forward'])
+                    cond_loss = np.sum(timing_stats['cond_loss_pair'])
+                    gen_bwd = np.sum(timing_stats['gen_backward'])
 
+                    measured_total = disc_data + disc_fwd + disc_bwd + gen_data + gen_fwd + cond_loss + gen_bwd
+                    unmeasured = total_time - measured_total
+
+                    print("\n" + "="*60)
+                    print("  DETAILED FIRST EPOCH TIMING BREAKDOWN")
+                    print("="*60)
+                    print(f"DISCRIMINATOR TRAINING:")
+                    print(f"  Data fetching:  {disc_data:6.2f}s ({100*disc_data/total_time:5.1f}%) - avg {disc_data/len(timing_stats['disc_data_fetch'])*1000:6.1f}ms")
+                    print(f"  Forward pass:   {disc_fwd:6.2f}s ({100*disc_fwd/total_time:5.1f}%) - avg {disc_fwd/len(timing_stats['disc_forward'])*1000:6.1f}ms")
+                    print(f"  Backward pass:  {disc_bwd:6.2f}s ({100*disc_bwd/total_time:5.1f}%) - avg {disc_bwd/len(timing_stats['disc_backward'])*1000:6.1f}ms")
+                    print(f"\nGENERATOR TRAINING:")
+                    print(f"  Data fetching:  {gen_data:6.2f}s ({100*gen_data/total_time:5.1f}%) - avg {gen_data/len(timing_stats['gen_data_fetch'])*1000:6.1f}ms")
+                    print(f"  Forward pass:   {gen_fwd:6.2f}s ({100*gen_fwd/total_time:5.1f}%) - avg {gen_fwd/len(timing_stats['gen_forward'])*1000:6.1f}ms")
+                    print(f"  Cond loss calc: {cond_loss:6.2f}s ({100*cond_loss/total_time:5.1f}%) - avg {cond_loss/len(timing_stats['cond_loss_pair'])*1000:6.1f}ms")
+                    print(f"  Backward pass:  {gen_bwd:6.2f}s ({100*gen_bwd/total_time:5.1f}%) - avg {gen_bwd/len(timing_stats['gen_backward'])*1000:6.1f}ms")
+                    print(f"\nSUMMARY:")
+                    print(f"  Total measured: {measured_total:6.2f}s ({100*measured_total/total_time:5.1f}%)")
+                    print(f"  Unmeasured:     {unmeasured:6.2f}s ({100*unmeasured/total_time:5.1f}%)")
+                    print(f"  Total epoch:    {total_time:6.2f}s")
+                    print(f"\n  GPU compute:    {disc_fwd+disc_bwd+gen_fwd+gen_bwd:6.2f}s ({100*(disc_fwd+disc_bwd+gen_fwd+gen_bwd)/total_time:5.1f}%)")
+                    print(f"  Data overhead:  {disc_data+gen_data:6.2f}s ({100*(disc_data+gen_data)/total_time:5.1f}%)")
+
+                    # Queue health stats (only if prefetcher is enabled)
+                    if prefetcher and len(timing_stats['queue_size']) > 0:
+                        queue_sizes = timing_stats['queue_size']
+                        print(f"\nPREFETCHER QUEUE HEALTH:")
+                        print(f"  Queue size: min={min(queue_sizes)}, avg={np.mean(queue_sizes):.1f}, max={max(queue_sizes)} (out of 8)")
+                        if min(queue_sizes) < 1:
+                            print(f"  ⚠️  WARNING: Queue running low! Workers can't keep up with GPU.")
+                        elif min(queue_sizes) > 5:
+                            print(f"  ✓ Queue healthy: Workers easily keeping up with GPU")
+                        else:
+                            print(f"  ✓ Queue adequate: Workers keeping pace")
+                    print("="*60 + "\n")
 
                 if self._verbose:
                     epoch_iterator.set_description(
@@ -623,8 +825,10 @@ class DPCGANSynthesizer(BaseSynthesizer):
                 if self.wandb == True:
                     wandb.finish()
 
-            
-    
+            # Stop the prefetcher after training (if enabled)
+            if prefetcher:
+                prefetcher.stop()
+
 
     def sample(self, n, condition_column=None, condition_value=None):
         """Sample data similar to the training data.
@@ -653,9 +857,9 @@ class DPCGANSynthesizer(BaseSynthesizer):
         steps = n // self._batch_size + 1
         data = []
         for i in range(steps):
-            mean = torch.zeros(self._batch_size, self._embedding_dim)
+            mean = torch.zeros(self._batch_size, self._embedding_dim, device=self._device)
             std = mean + 1
-            fakez = torch.normal(mean=mean, std=std).to(self._device)
+            fakez = torch.normal(mean=mean, std=std)
 
             if global_condition_vec is not None:
                 condvec = global_condition_vec.copy()
