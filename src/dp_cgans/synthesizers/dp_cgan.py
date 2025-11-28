@@ -228,7 +228,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
             Whether to use differential privacy
         wandb_config (dict):
             whether to use weights and bias tool to monitor the training
-        conditional_columns (float):
+        ontology (float):
             a matrix of embeddings
     """
 
@@ -236,7 +236,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
                  log_frequency=True, verbose=False, epochs=300, pac=10, cuda=True, private=False,
-                 wandb=False, conditional_columns=None):
+                 wandb=False, ontology=None, transformer=os.getcwd()+'/fitted_transformer.pkl'):
 
         assert batch_size % 2 == 0
 
@@ -257,8 +257,9 @@ class DPCGANSynthesizer(BaseSynthesizer):
         self.pac = pac
 
         self.private = private
-        self.conditional_columns = conditional_columns
+        self.ontology = ontology
         self.wandb = wandb
+        self.transformer = transformer
 
 
         if not cuda or not torch.cuda.is_available():
@@ -468,11 +469,13 @@ class DPCGANSynthesizer(BaseSynthesizer):
 
         print("Start transforming data...")
         
-        if os.path.exists(os.getcwd()+'/fitted_transformer.pkl'):
+        if os.path.exists(self.transformer):
+            print("Found exisitng fitted transformer - ", self.transformer)
             print("Loading fitted transformer...")
-            self._transformer = joblib.load(os.getcwd()+'/fitted_transformer.pkl')
+            self._transformer = joblib.load(self.transformer)
         else:
-            print("Start fitting transformer ...")
+            print("Cannot find exisitng fitted transformer!!")
+            print("Start fitting new transformer ...")
             self._transformer.fit(train_data, discrete_columns)
             self._transformer.fit(train_data, discrete_columns)
             joblib.dump(self._transformer, os.getcwd()+'/fitted_transformer.pkl')

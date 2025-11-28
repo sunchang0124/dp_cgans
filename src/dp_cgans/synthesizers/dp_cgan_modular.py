@@ -76,7 +76,7 @@ class DP_CGAN(DPCGANModel):
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
                  log_frequency=True, verbose=False, epochs=300, pac=10, cuda=True, 
                  rounding='auto', min_value='auto', max_value='auto', private=False,
-                 wandb=False, ontology=None):
+                 wandb=False, ontology=None, transformer=None):
         super().__init__(
             field_names=field_names,
             primary_key=primary_key,
@@ -106,6 +106,8 @@ class DP_CGAN(DPCGANModel):
             'pac': pac,
             'cuda': cuda,
             'private': private,
-            'wandb' : wandb
+            'wandb' : wandb,
+            'ontology': ontology,
+            'transformer': transformer
         }
 
