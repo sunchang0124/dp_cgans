@@ -64,7 +64,14 @@ import time
 
 tabular_data=pd.read_csv("../resources/example_tabular_data_UCIAdult.csv")
 
-# We adjusted the original CTGAN model from SDV. Instead of looking at the distribution of individual variable, we extended to two variables and keep their corrll
+### Add your pre-processing if needed
+for col in tabular_data.columns:
+    tabular_data[col] = pd.to_numeric(tabular_data[col], downcast='integer')
+for col in tabular_data.columns:
+    if tabular_data[col].nunique() < 10: 
+        tabular_data[col] = tabular_data[col].astype('object')
+
+# Configure model hyper-parameters
 model = DP_CGAN(
     epochs=500, # number of training epochs
     batch_size=100, # the size of each batch
