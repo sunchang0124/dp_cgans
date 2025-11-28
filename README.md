@@ -60,6 +60,7 @@ If your input is tabular data (e.g., csv):
  ```python
 from dp_cgans import DP_CGAN
 import pandas as pd
+import time
 
 tabular_data=pd.read_csv("../resources/example_tabular_data_UCIAdult.csv")
 
