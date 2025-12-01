@@ -236,7 +236,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
                  generator_lr=2e-4, generator_decay=1e-6, discriminator_lr=2e-4,
                  discriminator_decay=1e-6, batch_size=500, discriminator_steps=1,
                  log_frequency=True, verbose=False, epochs=300, pac=10, cuda=True, private=False,
-                 wandb=False, ontology=None, transformer=os.getcwd()+'/fitted_transformer.pkl'):
+                 wandb=False, ontology=None, saved_transformer=os.getcwd()+'/fitted_transformer.pkl'):
 
         assert batch_size % 2 == 0
 
@@ -259,7 +259,7 @@ class DPCGANSynthesizer(BaseSynthesizer):
         self.private = private
         self.ontology = ontology
         self.wandb = wandb
-        self.transformer = transformer
+        self.saved_transformer = saved_transformer
 
 
         if not cuda or not torch.cuda.is_available():
@@ -468,15 +468,18 @@ class DPCGANSynthesizer(BaseSynthesizer):
         self._transformer = DataTransformer()
 
         print("Start transforming data...")
-        
-        if os.path.exists(self.transformer):
-            print("Found exisitng fitted transformer - ", self.transformer)
+        print(self.saved_transformer)
+
+        if self.saved_transformer and os.path.exists(self.saved_transformer):
+            print("Found existing fitted transformer - ", self.saved_transformer)
             print("Loading fitted transformer...")
-            self._transformer = joblib.load(self.transformer)
+            self._transformer = joblib.load(self.saved_transformer)
         else:
-            print("Cannot find exisitng fitted transformer!!")
+            if self.saved_transformer is None:
+                print("No transformer path provided.")
+            else:
+                print("Cannot find existing fitted transformer!!")
             print("Start fitting new transformer ...")
-            self._transformer.fit(train_data, discrete_columns)
             self._transformer.fit(train_data, discrete_columns)
             joblib.dump(self._transformer, os.getcwd()+'/fitted_transformer.pkl')
             print("Saving fitted transformer...")
