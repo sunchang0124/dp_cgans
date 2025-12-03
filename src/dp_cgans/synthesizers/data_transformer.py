@@ -20,7 +20,7 @@ class DataTransformer(object):
     Discrete columns are encoded using a scikit-learn OneHotEncoder.
     """
 
-    def __init__(self, max_clusters=10, weight_threshold=0.001):
+    def __init__(self, max_clusters=5, weight_threshold=0.001):
         """Create a data transformer.
 
         Args:
@@ -50,7 +50,6 @@ class DataTransformer(object):
         valid_component_indicator = gm.weights_ > self._weight_threshold
         num_components = valid_component_indicator.sum()
 
-        # print(column_name, num_components)
         return ColumnTransformInfo(
             column_name=column_name, column_type="continuous", transform=gm,
             transform_aux=valid_component_indicator,
@@ -136,8 +135,10 @@ class DataTransformer(object):
         if not isinstance(raw_data, pd.DataFrame):
             column_names = [str(num) for num in range(raw_data.shape[1])]
             raw_data = pd.DataFrame(raw_data, columns=column_names)
+            
 
         column_data_list = []
+
         for column_transform_info in self._column_transform_info_list:
             column_data = raw_data[[column_transform_info.column_name]].values
             if column_transform_info.column_type == "continuous":

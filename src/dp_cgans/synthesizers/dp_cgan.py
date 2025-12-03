@@ -468,7 +468,6 @@ class DPCGANSynthesizer(BaseSynthesizer):
         self._transformer = DataTransformer()
 
         print("Start transforming data...")
-        print(self.saved_transformer)
 
         if self.saved_transformer and os.path.exists(self.saved_transformer):
             print("Found existing fitted transformer - ", self.saved_transformer)
