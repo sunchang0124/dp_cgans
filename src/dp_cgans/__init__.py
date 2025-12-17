@@ -5,7 +5,7 @@
 
 __author__ = 'Chang Sun'
 __email__ = 'chang.sun@maastrichtuniversity.nl'
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 
 # from dp_cgans import constraints, metadata
