@@ -93,6 +93,7 @@ model = DP_CGAN(
    discriminator_lr=2e-4,
    discriminator_steps=10, 
    private=False,
+   saved_transformer=None #"fitted_transformer.pkl"
 )
 
 start_time = time.time()
