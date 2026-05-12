@@ -62,27 +62,37 @@ from dp_cgans import DP_CGAN
 import pandas as pd
 import time
 
-tabular_data=pd.read_csv("../resources/example_tabular_data_UCIAdult.csv")
+input_file = "../resources/example_tabular_data_UCIAdult.csv"
+tabular_data = pd.read_csv(input_file)
+
+### Detect decimal places for float columns before numeric conversion
+_raw = pd.read_csv(input_file, dtype=str)
+float_decimals = {}
+for col in _raw.columns:
+    sample = _raw[col].dropna()
+    if sample.str.contains(r'\.').any():
+        n = sample.str.extract(r'\.(\d+)')[0].dropna().str.len().max()
+        float_decimals[col] = int(n)
 
 ### Add your pre-processing if needed
 for col in tabular_data.columns:
-    tabular_data[col] = pd.to_numeric(tabular_data[col], errors='ignore', downcast='integer')
+   tabular_data[col] = pd.to_numeric(tabular_data[col], errors='ignore', downcast='integer')
 for col in tabular_data.columns:
-    if tabular_data[col].nunique() < 10: 
-        tabular_data[col] = tabular_data[col].astype('object')
+   if tabular_data[col].nunique() < 10: 
+       tabular_data[col] = tabular_data[col].astype('object')
 
 # Configure model hyper-parameters
 model = DP_CGAN(
-    epochs=500, # number of training epochs
-    batch_size=100, # the size of each batch
-    log_frequency=True,
-    verbose=True,
-    generator_dim=(128, 128, 128),
-    discriminator_dim=(128, 128, 128),
-    generator_lr=2e-4, 
-    discriminator_lr=2e-4,
-    discriminator_steps=10, 
-    private=False,
+   epochs=100, # number of training epochs
+   batch_size=100, # the size of each batch
+   log_frequency=True,
+   verbose=True,
+   generator_dim=(128, 128, 128),
+   discriminator_dim=(128, 128, 128),
+   generator_lr=2e-4, 
+   discriminator_lr=2e-4,
+   discriminator_steps=10, 
+   private=False,
 )
 
 start_time = time.time()
@@ -101,6 +111,12 @@ model.save("generator.pkl")
 
 # Generate 100 synthetic rows
 syn_data = model.sample(100)
+
+### Round float columns to match decimal precision of real data
+for col, decimals in float_decimals.items():
+    if col in syn_data.columns:
+        syn_data[col] = syn_data[col].round(decimals)
+
 syn_data.to_csv("syn_data_file.csv",index=None)
  ```
 
