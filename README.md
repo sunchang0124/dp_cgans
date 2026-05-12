@@ -24,7 +24,7 @@ This package is extended from SDV (https://github.com/sdv-dev/SDV), CTGAN (https
 You will need Python >=3.8+
 
 ```shell
-pip install dp-cgans
+pip3 install -U dp-cgans
 ```
 
 ## 🪄 Usage
