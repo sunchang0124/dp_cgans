@@ -30,7 +30,7 @@ DP-CGANS learns the joint distribution of a tabular dataset and generates new ro
 | **ML augmentation** | Adding synthetic rows to train a predictive model. | Sample as many rows as you need with `model.sample(n)`. The paper evaluates train-on-synthetic, test-on-real performance. |
 | **Statistical replication** | The synthetic data reproduces the real distributions and relationships closely enough to rerun an analysis on it. | The conditional vector and loss functions were modified to emphasise the relations between variables. The paper evaluates marginal distributions, pairwise correlations and statistical similarity against the real data. |
 | **Causal inference** | The synthetic data preserves a known or specified causal structure. | DP-CGANS fits a joint distribution; it does not encode a causal graph. Use it to exercise a causal-analysis pipeline, not to validate causal claims. |
-| **Education** | Teaching material, demonstrations, training courses. | The [tutorial notebook](#-tutorial-notebook) runs in Colab and the repository ships an example dataset (`resources/example_tabular_data_UCIAdult.csv`). Used in the SynData hands-on workshop. |
+| **Education** | Synthetic data used as teaching material, for demonstrations or in training courses. | Generate a realistic but non-identifiable copy of a sensitive dataset so students can practise on it, for example medical students learning statistical analysis on synthetic patient records. Trained with `private=True`, the teaching data carries a formal privacy guarantee and can be handed out freely. |
 | **Benchmarking** | Used as a baseline or benchmark dataset for comparing generators or metrics. | A published method with a pip-installable implementation, a fixed example dataset and a CLI, so it can serve as a reproducible baseline in generator comparisons. |
 | **Imbalance correction** | Oversampling a rare class. | `model.sample(n, condition_column=..., condition_value=...)` draws rows for a chosen category, so a minority class can be oversampled directly. |
 
@@ -47,6 +47,8 @@ pip3 install -U dp-cgans
 ### 🐍 Use with Python
 
 Use the library directly in Python scripts when you want full control over the model hyper-parameters, the differential-privacy setting (`private=True`), and conditional sampling.
+
+New to DP-CGANS? Try it first in the [tutorial notebook](https://colab.research.google.com/github/sunchang0124/syndata-workshop/blob/main/dpcgans_hands_on.ipynb) on Colab, which runs the example below step by step in your browser.
 
 If your input is tabular data (e.g., csv):
 
