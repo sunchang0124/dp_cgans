@@ -32,6 +32,23 @@ class DataTransformer(object):
         self._max_clusters = max_clusters
         self._weight_threshold = weight_threshold
 
+    @staticmethod
+    def _learn_decimals(raw_column_data, max_decimals=15):
+        """Return the number of decimal places needed to represent the real values.
+
+        Integers give 0. Floats give the smallest number of decimals that
+        reproduces every non-null value exactly. ``None`` means the column
+        cannot be rounded safely (more than ``max_decimals`` places, or no data).
+        """
+        values = np.asarray(raw_column_data, dtype=float)
+        values = values[np.isfinite(values)]
+        if len(values) == 0:
+            return None
+        for decimals in range(max_decimals + 1):
+            if np.array_equal(values.round(decimals), values):
+                return decimals
+        return None
+
     ###### Modified by Chang ######
     def _fit_continuous(self, column_name, raw_column_data):
         """Train Bayesian GMM for continuous column."""
@@ -88,12 +105,16 @@ class DataTransformer(object):
 
         self._column_raw_dtypes = raw_data.infer_objects().dtypes
         self._column_transform_info_list = []
+        self._column_decimals = {}
         for column_name in raw_data.columns:
             raw_column_data = raw_data[column_name].values
             if column_name in discrete_columns:
                 column_transform_info = self._fit_discrete(column_name, raw_data[column_name])
             else:
                 column_transform_info = self._fit_continuous(column_name, raw_column_data)
+                # Remember how many decimal places the real data uses so that
+                # sampled values can be rounded to the same precision.
+                self._column_decimals[column_name] = self._learn_decimals(raw_column_data)
 
             self.output_info_list.append(column_transform_info.output_info)
             self.output_dimensions += column_transform_info.output_dimensions
@@ -195,6 +216,11 @@ class DataTransformer(object):
             if column_transform_info.column_type == 'continuous':
                 recovered_column_data = self._inverse_transform_continuous(
                     column_transform_info, column_data, sigmas, st)
+                # getattr keeps models saved before this attribute existed loadable
+                decimals = getattr(self, '_column_decimals', {}).get(
+                    column_transform_info.column_name)
+                if decimals is not None:
+                    recovered_column_data = np.round(recovered_column_data, decimals)
             else:
                 assert column_transform_info.column_type == 'discrete'
                 recovered_column_data = self._inverse_transform_discrete(

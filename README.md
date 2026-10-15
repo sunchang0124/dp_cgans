@@ -58,15 +58,6 @@ import time
 input_file = "../resources/example_tabular_data_UCIAdult.csv"
 tabular_data = pd.read_csv(input_file)
 
-### Detect decimal places for float columns before numeric conversion
-_raw = pd.read_csv(input_file, dtype=str)
-float_decimals = {}
-for col in _raw.columns:
-    sample = _raw[col].dropna()
-    if sample.str.contains(r'\.').any():
-        n = sample.str.extract(r'\.(\d+)')[0].dropna().str.len().max()
-        float_decimals[col] = int(n)
-
 ### Add your pre-processing if needed
 for col in tabular_data.columns:
    tabular_data[col] = pd.to_numeric(tabular_data[col], errors='ignore', downcast='integer')
@@ -103,13 +94,10 @@ model.save("generator.pkl")
 # print("load the trained file.")
 # loaded_model=DP_CGAN.load("PATH_TO_MODEL")
 
-# Generate 100 synthetic rows
+# Generate 100 synthetic rows.
+# Numeric columns come back with the same dtype and the same number of
+# decimal places as the real data (e.g. 2 decimals in, 2 decimals out).
 syn_data = model.sample(100)
-
-### Round float columns to match decimal precision of real data
-for col, decimals in float_decimals.items():
-    if col in syn_data.columns:
-        syn_data[col] = syn_data[col].round(decimals)
 
 syn_data.to_csv("syn_data_file.csv",index=None)
  ```

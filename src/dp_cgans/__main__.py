@@ -2,9 +2,8 @@ import glob
 import sys
 
 import pandas as pd
-import pkg_resources
 import typer
-from dp_cgans import DP_CGAN
+from dp_cgans import DP_CGAN, __version__
 
 cli = typer.Typer()
 
@@ -58,7 +57,7 @@ def cli_gen(
 
 @cli.command("version")
 def cli_version():
-    print(pkg_resources.get_distribution('dp_cgans').version)
+    print(__version__)
 
 
 if __name__ == "__main__":
