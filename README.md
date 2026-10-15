@@ -19,6 +19,21 @@
 This package is extended from SDV (https://github.com/sdv-dev/SDV), CTGAN (https://github.com/sdv-dev/CTGAN), and Differential Privacy in GANs (https://github.com/civisanalytics/dpwgan). The author modified the conditional matrix and cost functions to emphasize on the relations between variables. The main changes are in ctgan/synthesizers/ctgan.py ../data_sampler.py ../data_transformer.py
 
 
+## 🎯 What to use DP-CGANS for
+
+DP-CGANS learns the joint distribution of a tabular dataset and generates new rows that follow it, optionally under a differential-privacy guarantee. The table lists the purposes the model is built for and how the package supports each one.
+
+| Purpose | What it means | How DP-CGANS supports it |
+|---|---|---|
+| **Open release** | The synthetic output is shared or published in place of the real data. | Train with `private=True`: the discriminator is trained with DP-SGD and the spent privacy budget (ε, δ) is reported with Rényi DP accounting, so the generated data can be released as a privacy-preserving substitute. |
+| **Pipeline testing** | Exercising software, formats or pipelines; no realism claim. | Any CSV goes in, a CSV with the same columns and types comes out. `dp-cgans gen` produces development data in one command. |
+| **ML augmentation** | Adding synthetic rows to train a predictive model. | Sample as many rows as you need with `model.sample(n)`. The paper evaluates train-on-synthetic, test-on-real performance. |
+| **Statistical replication** | The synthetic data reproduces the real distributions and relationships closely enough to rerun an analysis on it. | The conditional vector and loss functions were modified to emphasise the relations between variables. The paper evaluates marginal distributions, pairwise correlations and statistical similarity against the real data. |
+| **Causal inference** | The synthetic data preserves a known or specified causal structure. | DP-CGANS fits a joint distribution; it does not encode a causal graph. Use it to exercise a causal-analysis pipeline, not to validate causal claims. |
+| **Education** | Teaching material, demonstrations, training courses. | The [tutorial notebook](#-tutorial-notebook) runs in Colab and the repository ships an example dataset (`resources/example_tabular_data_UCIAdult.csv`). Used in the SynData hands-on workshop. |
+| **Benchmarking** | Used as a baseline or benchmark dataset for comparing generators or metrics. | A published method with a pip-installable implementation, a fixed example dataset and a CLI, so it can serve as a reproducible baseline in generator comparisons. |
+| **Imbalance correction** | Oversampling a rare class. | `model.sample(n, condition_column=..., condition_value=...)` draws rows for a chosen category, so a minority class can be oversampled directly. |
+
 ## 📥️ Installation
 
 You will need Python >=3.8+
@@ -29,31 +44,9 @@ pip3 install -U dp-cgans
 
 ## 🪄 Usage
 
-### ⌨️ Use as a command-line interface
+### 🐍 Use with Python
 
-You can easily generate synthetic data for a file using your terminal after installing `dp-cgans` with pip.
-
-To quickly run our example, you can download the [example data](https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv):
-
-```bash
-wget https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv
-```
-
-Then run `dp-cgans`:
-
-```bash
-dp-cgans gen example_tabular_data_UCIAdult.csv --epochs 100 --output out.csv --gen-size 100
-```
-
-Get a full rundown of the available options for generating synthetic data with:
-
-```bash
-dp-cgans gen --help
-```
-
-### 🐍 Use with python 
-
-This library can also be used directly in python scripts
+Use the library directly in Python scripts when you want full control over the model hyper-parameters, the differential-privacy setting (`private=True`), and conditional sampling.
 
 If your input is tabular data (e.g., csv):
 
@@ -161,6 +154,34 @@ model.fit(tabular_data)
 model.sample(100)
   ```
 -->
+
+### ⌨️ Use as a command-line interface
+
+If you only need a quick synthetic copy of a CSV file, you can generate it from your terminal after installing `dp-cgans` with pip (default hyper-parameters, no differential privacy).
+
+To quickly run our example, you can download the [example data](https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv):
+
+```bash
+wget https://raw.githubusercontent.com/sunchang0124/dp_cgans/main/resources/example_tabular_data_UCIAdult.csv
+```
+
+Then run `dp-cgans`:
+
+```bash
+dp-cgans gen example_tabular_data_UCIAdult.csv --epochs 100 --output out.csv --gen-size 100
+```
+
+Get a full rundown of the available options for generating synthetic data with:
+
+```bash
+dp-cgans gen --help
+```
+
+### 📓 Tutorial notebook
+
+A hands-on tutorial that walks through loading a dataset, training DP-CGANS, sampling synthetic rows, and inspecting the result runs in the browser, no installation needed:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sunchang0124/syndata-workshop/blob/main/dpcgans_hands_on.ipynb) **DP-CGANS hands-on notebook** (source: [sunchang0124/syndata-workshop](https://github.com/sunchang0124/syndata-workshop/blob/main/dpcgans_hands_on.ipynb))
 
 
 ## 🧑‍💻 Development setup
